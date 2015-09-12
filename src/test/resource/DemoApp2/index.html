@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.2/angular.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.2/angular-sanitize.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.2/angular-route.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.2/angular-touch.js"></script>
+
+  <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
+  <script src="https://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js' charset='utf-8'></script>
+
+  <link rel="stylesheet" href="css/app.css"/>
+  <link href='http://ociweb.com/sites/default/files/images/oci-banner-logo.pn' rel='icon' type='image/png' />
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=PT+Serif:400,700,400italic' rel='stylesheet' type='text/css'>
+  <link href='https://netdna.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.css' rel='stylesheet' type='text/css'>
+  <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+  
+  <script src="js/app.js"></script>
+  <script src="js/services.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/directives.js"></script>  
+</head>
+
+<body ng-app='myApp'>
+  <div class='container'>
+    <p>
+      <img src='http://sett.ociweb.com/sett/images/OCILogo.png' id='oci_logo' class='logo'/>
+    <p>
+      <div id="wrapper" ng-controller="MyCtrl">
+	<h1>OCI Simple Web Page</h1>	
+	<!-- controller just to hide div in case we do not have js -->
+	<div id="content" ng-view='center'>This site only works when JavaScript is enabled.</div>	
+      </div>
+  </div>
+</body>
+
+</html>
