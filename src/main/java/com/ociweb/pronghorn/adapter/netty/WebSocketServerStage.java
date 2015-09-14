@@ -72,9 +72,9 @@ public class WebSocketServerStage extends PronghornStage{
         }
 
         bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup();
+        workerGroup = new NioEventLoopGroup(3);
 
-        ServerBootstrap b = new ServerBootstrap();
+        ServerBootstrap b = new ServerBootstrap();                
                         
         //for back pressure into the ring buffers
         b.childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 65536); //NOTE: should customize based on usage.

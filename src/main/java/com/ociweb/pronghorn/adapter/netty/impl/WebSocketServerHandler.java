@@ -45,6 +45,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import io.netty.util.CharsetUtil;
+import io.netty.util.concurrent.GenericFutureListener;
 
 /**
  * Handles handshakes and messages
@@ -100,19 +101,31 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
                 return;
             }
         }
-            
+          
 
         // Handshake
-        WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(
-                getWebSocketLocation(req), null, true);
+        WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(getWebSocketLocation(req), null, true);
         handshaker = wsFactory.newHandshaker(req);
+        
         if (handshaker == null) {
             WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
         } else {
-            handshaker.handshake(ctx.channel(), req);
+            GenericFutureListener<ChannelFuture> webSocketIsOpen = new  GenericFutureListener<ChannelFuture>() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    
+                    System.out.println("UpgradedWebSocket for id " + future.channel().id().asShortText()+" ||| "+future.channel().id().asLongText()+" thread "+Thread.currentThread().getId());
+
+                }
+                
+            };
+            handshaker.handshake(ctx.channel(), req).addListener(webSocketIsOpen);
         }
     }
 
+    
+    
+    
     private void handleWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) {
 
         // Check for closing frame
@@ -133,15 +146,17 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
         TextWebSocketFrame frame2 = (TextWebSocketFrame) frame;
         
         String request = frame2.text();
-        System.err.printf("%s received %s%n", ctx.channel(), request);
-        
-        
+                
 
+        Thread t = Thread.currentThread();
+        System.err.printf("%s received %s%n thread %d ", ctx.channel(), request, t.getId());        
+       
+        
+        
         ///////////////////
         //Do your work here
         ///////////////////
-        
-        
+
         
         ctx.channel().write(new TextWebSocketFrame(request.toUpperCase()));
         
