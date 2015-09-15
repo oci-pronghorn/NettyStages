@@ -44,7 +44,7 @@ public class ServiceObjectHolderTest {
          
          long key = holder.add(value);
          
-         String value2 = holder.get(key);
+         String value2 = holder.getValid(key);
          
          if (expireRule(value)) {
              assertNull(value2);

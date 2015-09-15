@@ -122,7 +122,7 @@ public class ServiceObjectHolder<T> {
                 data = new ServiceObjectData<T>(data, 2);                  
             }
                         
-            //keep going if we have looped around and hit a bucket which is already ocupied.
+            //keep going if we have looped around and hit a bucket which is already occupied with something valid.
         } while (null != data.serviceObjectValues[modIdx] && null != validator.isValid(data.serviceObjectValues[modIdx]));
         
         data.serviceObjectKeys[modIdx] = index;
@@ -132,7 +132,23 @@ public class ServiceObjectHolder<T> {
     }
     
     /**
-     * Given the index value return the valid object.
+     * Given the index value return the valid value object or null.
+     * 
+     * Side effect, if the value is invalid it is set to null to release the resources sooner.
+     * 
+     * @param index
+     * @return
+     */
+    public T getValid(final long index) {  
+        //must ensure we use the same instance for the work
+        ServiceObjectData<T> localData = data;
+        
+        int modIdx = localData.mask & (int)index;
+        return (index != localData.serviceObjectKeys[modIdx] ? null : (localData.serviceObjectValues[modIdx]=validator.isValid(localData.serviceObjectValues[modIdx])));
+    }
+
+    /**
+     * Given the index value return the value object or null.
      * 
      * @param index
      * @return
@@ -142,9 +158,9 @@ public class ServiceObjectHolder<T> {
         ServiceObjectData<T> localData = data;
         
         int modIdx = localData.mask & (int)index;
-        return (index != localData.serviceObjectKeys[modIdx] ? null : (localData.serviceObjectValues[modIdx]=validator.isValid(localData.serviceObjectValues[modIdx])));
+        return (index != localData.serviceObjectKeys[modIdx] ? null : localData.serviceObjectValues[modIdx]);
     }
-
+    
     public long size() {
         return sequenceCounter;
     }
