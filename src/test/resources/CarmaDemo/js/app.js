@@ -9,9 +9,13 @@ var app = angular.module('myApp', ['ngRoute','ngTouch','ngSanitize',
 
 
 app.config(['$routeProvider', function($routeProvider) {
-  $routeProvider.when('/view1', {templateUrl: 'partials/partial1.html', controller: 'MyCtrl', view: 'center'});
+  $routeProvider.when('/admin', {templateUrl: 'partials/partial1.html', controller: 'MyCtrl', view: 'center'});
+  $routeProvider.when('/pump', {templateUrl: 'partials/partial2.html', controller: 'MyCtrl', view: 'center'});
+  $routeProvider.when('/tank', {templateUrl: 'partials/partial3.html', controller: 'MyCtrl', view: 'center'});
+  $routeProvider.when('/monitor', {templateUrl: 'partials/partial4.html', controller: 'MyCtrl', view: 'center'});
   $routeProvider.otherwise({redirectTo: '/view1'});
 }]);
+
 
 app.controller('MyCtrl', (function($scope, $http) {
 	
@@ -28,7 +32,8 @@ app.controller('MyCtrl', (function($scope, $http) {
 		}
 		
 		 angular.element(document).ready(function () {
-      		 if (!window.WebSocket) {
+		 
+      		if (!window.WebSocket) {
 			  window.WebSocket = window.MozWebSocket;
 			}
 			if (window.WebSocket) {
@@ -48,16 +53,8 @@ app.controller('MyCtrl', (function($scope, $http) {
 			} else {
 			  alert("Your browser does not support Web Socket.");
 			}
+			
   		  });
       
   }));
 
-app.filter('objOrder', function () {
-        return function(object) {
-            var array = [];
-            angular.forEach(object, function (value, key) {
-                array.push({key: key, value: value});
-            });
-            return array;
-        };
-});

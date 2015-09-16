@@ -20,15 +20,9 @@ public class ServiceObjectHolderTest {
      ServiceObjectValidator<String> validator = new ServiceObjectValidator<String>() {
 
         @Override
-        public String isValid(String serviceObject) {
+        public boolean isValid(String serviceObject) {
             
-            if (expireRule(serviceObject)) {
-                return null;
-            } else {
-                return serviceObject;                
-            }
-            
-            
+            return ! expireRule(serviceObject);
         }
 
          

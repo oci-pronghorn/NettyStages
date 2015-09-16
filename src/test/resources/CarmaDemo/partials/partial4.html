@@ -1,0 +1,28 @@
+
+<h1>Real time monitoring page</h1>
+
+<!-- This page will show data about the tanks and pumps
+    Chart would be nice, but scrolling text is acceptable.
+    
+    WebSocket will send something like
+        timestamp, gallons, fuelType
+    
+    I want to avoid the complexity of JSON in the WebSocket payload is there something easy we could do .
+    perhaps this where we could split on pipes.
+       2015-05-05 07:30:00|1234000|Premium 
+
+
+-->
+
+
+<form onsubmit="return false;">
+
+<input type="text" name="station designator" value="stl/bigstreet"/>
+<input type="text" name="fuel type designator" value="premium unleaded"/>
+
+<input type="button" value="Monitor Now" />
+
+<h3>Updates</h3>
+
+<textarea id="responseText" style="width:500px;height:300px;"></textarea>
+</form>

@@ -1,6 +1,7 @@
 package com.ociweb.pronghorn.adapter.netty.impl;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 
 /**
  * Small footprint manager/holder of service objects. 
@@ -82,6 +83,9 @@ public class ServiceObjectHolder<T> {
     private long  sequenceCounter;
     private final ServiceObjectValidator<T> validator;
     
+    //for support of forever loop around the valid Objects
+    private int loopPos = -1;
+    
     /**
      * Do not use this constructor unless you want to start out with internal arrays more near the desired size.
      * 
@@ -123,7 +127,7 @@ public class ServiceObjectHolder<T> {
             }
                         
             //keep going if we have looped around and hit a bucket which is already occupied with something valid.
-        } while (null != data.serviceObjectValues[modIdx] && null != validator.isValid(data.serviceObjectValues[modIdx]));
+        } while (null != data.serviceObjectValues[modIdx] && validator.isValid(data.serviceObjectValues[modIdx]));
         
         data.serviceObjectKeys[modIdx] = index;
         data.serviceObjectValues[modIdx] = serviceObject;
@@ -144,7 +148,7 @@ public class ServiceObjectHolder<T> {
         ServiceObjectData<T> localData = data;
         
         int modIdx = localData.mask & (int)index;
-        return (index != localData.serviceObjectKeys[modIdx] ? null : (localData.serviceObjectValues[modIdx]=validator.isValid(localData.serviceObjectValues[modIdx])));
+        return (index != localData.serviceObjectKeys[modIdx] ? null : (validator.isValid(localData.serviceObjectValues[modIdx]) ? localData.serviceObjectValues[modIdx] : null ));
     }
 
     /**
@@ -163,6 +167,29 @@ public class ServiceObjectHolder<T> {
     
     public long size() {
         return sequenceCounter;
+    }
+    
+
+    /**
+     * Loop forever around all valid objects.
+     * Only returns null when there are no valid items to loop over.
+     * @return
+     */
+    public T next() {
+        
+        ServiceObjectData<T> localData = data;
+        int index = loopPos;
+        int modIdx;
+        int hardStop = index+localData.size;
+        T result = null;
+        do {
+            modIdx = (int)(++index) & localData.mask;
+            result = localData.serviceObjectValues[modIdx];                        
+        } while ((null == result || !validator.isValid(result) ) && index<=hardStop);
+        
+        loopPos = modIdx;
+        return index<=hardStop ? result : null;    
+        
     }
     
 }

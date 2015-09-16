@@ -8,6 +8,6 @@ public interface ServiceObjectValidator<T> {
      * @param serviceObject
      * @return serviceObject
      */
-    T isValid(T serviceObject);
+    boolean isValid(T serviceObject);
 
 }

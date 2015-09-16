@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xmlns="http://www.fixprotocol.org/ns/fast/td/1.1">
+  
+   <template name="WebSocketFragment" id="1" xmlns="http://www.fixprotocol.org/ns/fast/td/1.1">
+        <uInt64 name="ChannelId"   id="2">
+            <delta/>
+        </uInt64>
+        <string name="Payload" id="3" encoding="utf8"/>     
+   </template>
+    
+</templates>

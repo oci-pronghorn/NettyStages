@@ -31,12 +31,21 @@
     <p>
       <img src='http://sett.ociweb.com/sett/images/OCILogo.png' id='oci_logo' class='logo'/>
     <p>
+    	<h1>Gas Station Simulation and Monitoring</h1>
+    	
+    	<div id="bandMenu">
+		      [ <a href="#/admin">App Admin</a> | 
+              <a href="#/pump">Pump Simulation</a> | 
+              <a href="#/tank">Tank Simulation</a> | 
+              <a href="#/monitor">Montor</a> ] <br>
+		</div>
+    
       <div id="wrapper" ng-controller="MyCtrl">
-	<h1>OCI Simple Web Page</h1>	
+	
 	<!-- controller just to hide div in case we do not have js -->
 	<div id="content" ng-view='center'>This site only works when JavaScript is enabled.</div>	
       </div>
-  </div>
+    </div>
 </body>
 
 </html>
