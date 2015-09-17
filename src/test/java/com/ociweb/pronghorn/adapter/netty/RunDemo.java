@@ -1,11 +1,6 @@
 package com.ociweb.pronghorn.adapter.netty;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.xml.sax.SAXException;
 
 import com.ociweb.pronghorn.pipe.FieldReferenceOffsetManager;
 import com.ociweb.pronghorn.pipe.Pipe;
@@ -49,7 +44,7 @@ public class RunDemo {
         
         //Call this method if we want to shut down early
         try {
-            Thread.sleep(120000);
+            Thread.sleep(240000);//4 minutes
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -59,6 +54,8 @@ public class RunDemo {
                 
     }
 
+    //TODO: there is a startup race condition where it can not grab the port? need to ensure re-use is on?
+    //TODO: there is a startup race condition where the typearray for text gets corrupted. seems to be server side.
 
     private void noPipesExamples(GraphManager gm) {
         boolean webSocketsDemo = true;
@@ -78,13 +75,13 @@ public class RunDemo {
         try {
             FieldReferenceOffsetManager webSocketFROM = TemplateHandler.loadFrom("/websocket.xml");
             
-            PipeConfig toNetConfig = new PipeConfig(webSocketFROM,100,256);
-            PipeConfig fromNetConfig = new PipeConfig(webSocketFROM,100,256);
+            PipeConfig toNetConfig = new PipeConfig(webSocketFROM,40,42*1024);
+            PipeConfig fromNetConfig = new PipeConfig(webSocketFROM,40,42*1024);
             
             //more pipes are not helping because I do not have that many cores.
             
-            Pipe[] toNetPipes = new Pipe[] {new Pipe(toNetConfig)};//,new Pipe(toNetConfig),new Pipe(toNetConfig),new Pipe(toNetConfig)};
-            Pipe[] fromNetPipes = new Pipe[] {new Pipe(fromNetConfig)};//,new Pipe(fromNetConfig),new Pipe(toNetConfig),new Pipe(toNetConfig)};
+            Pipe[] toNetPipes = new Pipe[] {new Pipe(toNetConfig),new Pipe(toNetConfig)};
+            Pipe[] fromNetPipes = new Pipe[] {new Pipe(fromNetConfig),new Pipe(fromNetConfig)};
             
             StaticHTTPServerStage.setRelativeAppFolderRoot("/src/test/resources/DemoApp"); 
             WebSocketServerPronghornStage serverStage = new WebSocketServerPronghornStage(gm, toNetPipes, fromNetPipes);       
@@ -100,7 +97,7 @@ public class RunDemo {
             
             }
             
-            MonitorConsoleStage.attach(gm);
+       //     MonitorConsoleStage.attach(gm);
           //  GraphManager.enableBatching(gm);
             
         } catch (Exception e) {

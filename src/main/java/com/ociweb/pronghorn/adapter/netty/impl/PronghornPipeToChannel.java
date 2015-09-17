@@ -7,12 +7,12 @@ import com.ociweb.pronghorn.pipe.Pipe;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.buffer.WrappedByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoop;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.util.concurrent.GenericFutureListener;
 
 public class PronghornPipeToChannel implements Runnable {
 
@@ -56,47 +56,73 @@ public class PronghornPipeToChannel implements Runnable {
                                     
             Channel ch = channelHolder.getValid(channelId);
             if (null == ch) {
-                System.out.println("connection closed and can not get response");
+                //May want to log this "connection closed and can not get response"
+                //dump message and move on since caller is no longer attached.
                 Pipe.confirmLowLevelRead(fromPronghorn, messageSize);
                 Pipe.addAndGetWorkingTail(fromPronghorn, messageSize-1);
                 Pipe.releaseReads(fromPronghorn);
             } else {
-            
-                long bytesCount = ch.bytesBeforeUnwritable();
+                //TODO: AAA  use of Text frame is wrong if we were doing round trip of array.!!!!
                 
                 //only write when we know there is enough room 
-                if (len < bytesCount) {
+                if (len < ch.bytesBeforeUnwritable()) {
                     
-                    //still testing all the ways of doing this to find the best.
-                    
-              //      ByteBuf msg = Unpooled.copiedBuffer( Pipe.wrappedUnstructuredLayoutBufferA(fromPronghorn, meta, len),
-                //                                          Pipe.wrappedUnstructuredLayoutBufferB(fromPronghorn, meta, len) );
-                 
-                    
-                    
-                   byte[] target = new byte[len]; //TODO. get from pool!!!
-                   Pipe.readBytes(fromPronghorn, target, 0, 0xFFFFFF, meta, len);
-                                
-                    //7028
-                    ch.writeAndFlush(new TextWebSocketFrame(Unpooled.wrappedBuffer(target)),ch.voidPromise());
-                    
-                    //
-                    //6814  slower to sync.
-                  //  try {
-                       // ch.writeAndFlush(new TextWebSocketFrame(msg)).sync();
-                    //} catch (InterruptedException e) {
-                      //  Thread.currentThread().interrupt();
-                        //return;
-                    //}
-                     
-                    //7484 but dangeours must use the future to do release
-                   //   ch.writeAndFlush(new TextWebSocketFrame(msg));
-                    
-                    //OR: release all but batch them and release the batch position on Future  TODO: may be the best solution.
+//zero copy async                    
+                    //Trips/sec 3403.5311635822163 mbps 169.01843523984257
+                    //zero copy ByteBuf into PronghornRingBuffer
+                    ByteBuf msg = Unpooled.copiedBuffer(Pipe.wrappedUnstructuredLayoutBufferA(fromPronghorn, meta, len),
+                                                        Pipe.wrappedUnstructuredLayoutBufferB(fromPronghorn, meta, len) );
+                                        
+                    //our position which much be released after the write is complete.
+                    ch.writeAndFlush(new BinaryWebSocketFrame(msg)).
+                          addListener(new ReleaseBuffer(fromPronghorn, Pipe.bytesWorkingTailPosition(fromPronghorn),Pipe.getWorkingTailPosition(fromPronghorn)));
                     
                     Pipe.confirmLowLevelRead(fromPronghorn, messageSize);
                     Pipe.addAndGetWorkingTail(fromPronghorn, messageSize-1);
-                    Pipe.releaseReads(fromPronghorn);
+                    //this enables the next block to be read from the right offset, without waiting for the above write
+                    Pipe.markBytesReadBase(fromPronghorn, Pipe.takeValue(fromPronghorn));
+                    
+                    
+                                   
+//full copy                    
+//                    //Trips/sec 3204.7858134814655 mbps 159.14879501305282
+//                    byte[] target = new byte[len]; //TODO. get from pool!!!
+//                    Pipe.readBytes(fromPronghorn, target, 0, 0xFFFFFF, meta, len);
+//                    ch.writeAndFlush(new TextWebSocketFrame(Unpooled.wrappedBuffer(target)),ch.voidPromise());
+//                    //
+//                    Pipe.confirmLowLevelRead(fromPronghorn, messageSize);
+//                    Pipe.addAndGetWorkingTail(fromPronghorn, messageSize-1);
+//                    //this enables the next block to be written from the right offset
+//                    Pipe.markBytesReadBase(fromPronghorn, Pipe.takeValue(fromPronghorn));                    
+//                    //our position which much be released after the write is complete.
+//                    int bytesWorkingTail = Pipe.bytesWorkingTailPosition(fromPronghorn);
+//                    long workingTail = Pipe.getWorkingTailPosition(fromPronghorn);   
+//                    //this releases this portion of ring back for the next writer to use.
+//                    Pipe.batchedReleasePublish(fromPronghorn,bytesWorkingTail,workingTail); 
+                    
+                    
+                    
+//zero copy and sync                    
+//                    //Trips/sec 3318.675848336514 mbps 164.80454328019997
+//                    try {
+//                      ByteBuf msg = Unpooled.copiedBuffer( Pipe.wrappedUnstructuredLayoutBufferA(fromPronghorn, meta, len),
+//                      Pipe.wrappedUnstructuredLayoutBufferB(fromPronghorn, meta, len) );
+//                        ch.writeAndFlush(new TextWebSocketFrame(msg)).sync();
+//                    } catch (InterruptedException e) {
+//                       Thread.currentThread().interrupt();
+//                       return;
+//                    }
+//                    //
+//                    Pipe.confirmLowLevelRead(fromPronghorn, messageSize);
+//                    Pipe.addAndGetWorkingTail(fromPronghorn, messageSize-1);
+//                    //this enables the next block to be written from the right offset
+//                    Pipe.markBytesReadBase(fromPronghorn, Pipe.takeValue(fromPronghorn));                    
+//                    //our position which much be released after the write is complete.
+//                    int bytesWorkingTail = Pipe.bytesWorkingTailPosition(fromPronghorn);
+//                    long workingTail = Pipe.getWorkingTailPosition(fromPronghorn);   
+//                    //this releases this portion of ring back for the next writer to use.
+//                    Pipe.batchedReleasePublish(fromPronghorn,bytesWorkingTail,workingTail); 
+                    
                                     
                 } else {
                     break;
@@ -112,12 +138,12 @@ public class PronghornPipeToChannel implements Runnable {
         if (Pipe.contentRemaining(toPronghorn) < maxPipeContentLimit ) { //if we loop here we die
             Channel ch = channelHolder.next();
             if (null!=ch) {
-                ch.read();
+                ch.read(); //this can be a very slow call
             }
         }        
         
         //put back into loop to do this again        
-        if (0==(++iteration&0x3FFFF) && Pipe.contentRemaining(fromPronghorn)==0 && Pipe.contentRemaining(toPronghorn)==0) {
+        if (0==(++iteration&0xFFF) && Pipe.contentRemaining(fromPronghorn)==0 && Pipe.contentRemaining(toPronghorn)==0) {
             //slow down because there is nothing going on.
             eventLoop.schedule(this, 1, TimeUnit.MILLISECONDS);
         } else {
@@ -126,4 +152,23 @@ public class PronghornPipeToChannel implements Runnable {
 
     }
 
+    static class ReleaseBuffer implements GenericFutureListener<ChannelFuture> {
+        int bytesWorkingTail; 
+        long workingTail;
+        Pipe pipe;
+        public ReleaseBuffer(Pipe pipe, int bytesWorkingTail, long workingTail) {
+            this.bytesWorkingTail = bytesWorkingTail;
+            this.workingTail = workingTail;
+            this.pipe = pipe;
+        }
+        
+        @Override
+        public void operationComplete(ChannelFuture future) throws Exception {
+            Pipe.batchedReleasePublish(pipe,bytesWorkingTail,workingTail);       
+        }
+        
+    }
+
 }
+
+

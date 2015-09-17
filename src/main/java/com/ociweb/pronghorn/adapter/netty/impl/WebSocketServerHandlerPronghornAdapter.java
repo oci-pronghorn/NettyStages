@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.ociweb.pronghorn.adapter.netty.WebSocketServerStage;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -23,7 +24,9 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpUtil;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.ContinuationWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -45,18 +48,18 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
     
     private final PronghornFullDuplexManager pfdm;
     private WebSocketServerHandshaker handshaker;
-    
+       
     public WebSocketServerHandlerPronghornAdapter(PronghornFullDuplexManager pfdm) {
         this.pfdm = pfdm;
     }
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) {
-        if (msg instanceof FullHttpRequest) {
-            handleHttpRequest(ctx, (FullHttpRequest) msg);
-        } else if (msg instanceof WebSocketFrame) {
+        if (msg instanceof WebSocketFrame) {
             handleWebSocketFrame(ctx, (WebSocketFrame) msg);
-        }
+        } else if (msg instanceof FullHttpRequest) {
+            handleHttpRequest(ctx, (FullHttpRequest) msg);
+        } 
     }
 
     @Override
@@ -127,7 +130,7 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
    
 
     private void handleWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) {
-      //  System.out.println("new content to send");
+        //  System.out.println("new content to send");
 
         // Check for closing frame
         if (frame instanceof CloseWebSocketFrame) {
@@ -138,16 +141,13 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
             ctx.channel().write(new PongWebSocketFrame(frame.content().retain()));
             return;
         }
-        if (!(frame instanceof TextWebSocketFrame)) {
-            throw new UnsupportedOperationException(String.format("%s frame types not supported", frame.getClass()
-                    .getName()));
-        }
-        
+
         Attribute<PronghornFullDuplex> attrib = ctx.channel().attr(PRONGHORN_KEY);
-        assert(null != attrib.get()) : "This new connection should already be set";
-                        
-        
-        ctx.channel().attr(PRONGHORN_KEY).get().write(frame.isFinalFragment(), frame.content());
+        if (!frame.isFinalFragment()) {
+            attrib.get().partialSendToPipe(frame.content());         
+        } else {
+            attrib.get().sendToPipe(frame.content());
+        }      
         
     }
 

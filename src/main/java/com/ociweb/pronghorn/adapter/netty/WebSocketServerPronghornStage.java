@@ -80,12 +80,24 @@ public class WebSocketServerPronghornStage extends PronghornStage{
         ServerBootstrap b = new ServerBootstrap();                
                         
         //for back pressure into the ring buffers
-        b.childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 65536); //NOTE: should customize based on usage.
-        b.childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 4096);
-                
+        b.childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 96*1024); //NOTE: should customize based on usage.
+        b.childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 2*1024);
+        
         //for reuse of ByteBuffers
         b.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
                 
+        b.option(ChannelOption.SO_REUSEADDR, true);
+        b.option(ChannelOption.TCP_NODELAY, true);
+        b.option(ChannelOption.SO_KEEPALIVE, false);
+        b.option(ChannelOption.SO_LINGER, 0);        
+        
+        b.childOption(ChannelOption.SO_REUSEADDR, true);
+        b.childOption(ChannelOption.TCP_NODELAY, true);
+        b.childOption(ChannelOption.SO_KEEPALIVE, false);
+        b.childOption(ChannelOption.SO_LINGER, 0);
+        
+        b.childOption(ChannelOption.SO_SNDBUF, 128*1024);
+        b.childOption(ChannelOption.SO_RCVBUF, 128*1024);
         
         
         b.group(bossGroup, workerGroup)
@@ -152,8 +164,6 @@ public class WebSocketServerPronghornStage extends PronghornStage{
             pipeline.addLast(new HttpServerCodec());
             pipeline.addLast(new HttpObjectAggregator(65536));
          //   pipeline.addLast(new WebSocketServerCompressionHandler()); //TODO: class missing from jar
-            
-         //   pipeline.addLast(new WebSocketServerHandler());
             
             pipeline.addLast(new WebSocketServerHandlerPronghornAdapter(manager)); //this works directly with pipes
         }
