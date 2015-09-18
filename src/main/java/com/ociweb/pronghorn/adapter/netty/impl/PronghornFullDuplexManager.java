@@ -2,6 +2,8 @@ package com.ociweb.pronghorn.adapter.netty.impl;
 
 import com.ociweb.pronghorn.pipe.Pipe;
 import com.ociweb.pronghorn.pipe.util.hash.LongHashTable;
+import com.ociweb.pronghorn.util.ServiceObjectHolder;
+import com.ociweb.pronghorn.util.ServiceObjectValidator;
 
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;

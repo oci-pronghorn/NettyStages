@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.ociweb.pronghorn.pipe.FieldReferenceOffsetManager;
 import com.ociweb.pronghorn.pipe.Pipe;
+import com.ociweb.pronghorn.util.ServiceObjectHolder;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

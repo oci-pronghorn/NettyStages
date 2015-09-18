@@ -1,10 +1,13 @@
-package com.ociweb.pronghorn.adapter.netty.impl;
+package com.ociweb.pronghorn.util;
 
 import static org.junit.Assert.*;
 
 import java.util.Random;
 
 import org.junit.Test;
+
+import com.ociweb.pronghorn.util.ServiceObjectHolder;
+import com.ociweb.pronghorn.util.ServiceObjectValidator;
 
 public class ServiceObjectHolderTest {
 

@@ -1,4 +1,4 @@
-package com.ociweb.pronghorn.adapter.netty.impl;
+package com.ociweb.pronghorn.util;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
