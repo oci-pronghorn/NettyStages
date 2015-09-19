@@ -11,6 +11,9 @@ import com.ociweb.pronghorn.stage.scheduling.GraphManager;
 import com.ociweb.pronghorn.stage.scheduling.StageScheduler;
 import com.ociweb.pronghorn.stage.scheduling.ThreadPerStageScheduler;
 
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.util.internal.SystemPropertyUtil;
+
 public class RunDemo {
 
     static RunDemo instance;
@@ -83,8 +86,9 @@ public class RunDemo {
             Pipe[] toNetPipes = new Pipe[] {new Pipe(toNetConfig),new Pipe(toNetConfig)};
             Pipe[] fromNetPipes = new Pipe[] {new Pipe(fromNetConfig),new Pipe(fromNetConfig)};
             
-            StaticHTTPServerStage.setRelativeAppFolderRoot("/src/test/resources/DemoApp"); 
-            WebSocketServerPronghornStage serverStage = new WebSocketServerPronghornStage(gm, toNetPipes, fromNetPipes);       
+            WebSocketServerPronghornStage.setRelativeAppFolderRoot(SystemPropertyUtil.get("user.dir")+"/src/test/resources/DemoApp"); 
+
+            WebSocketServerPronghornStage serverStage = new WebSocketServerPronghornStage(gm, toNetPipes, fromNetPipes,new NioEventLoopGroup(1), new NioEventLoopGroup(fromNetPipes.length));       
             
             int i = toNetPipes.length;
             while (--i>=0) {

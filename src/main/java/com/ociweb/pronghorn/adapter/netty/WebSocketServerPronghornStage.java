@@ -44,19 +44,27 @@ public class WebSocketServerPronghornStage extends PronghornStage{
     private EventLoopGroup workerGroup;
     private PronghornFullDuplexManager manager;
     
-    protected WebSocketServerPronghornStage(GraphManager graphManager, Pipe[] inputPipes, Pipe[] outputPipes) {
+    public WebSocketServerPronghornStage(GraphManager graphManager, Pipe[] inputPipes, Pipe[] outputPipes, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
         super(graphManager, inputPipes, outputPipes);
         
         //enable shutdown to be called without looking for any pipes first
         GraphManager.addAnnotation(graphManager, GraphManager.PRODUCER, GraphManager.PRODUCER, this);
         
-        System.out.println("The AngularJS app must be in:"+SystemPropertyUtil.get("user.dir"));
-                
-        manager = new PronghornFullDuplexManager(outputPipes, inputPipes);
-        bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup(outputPipes.length);
+        if (null!=SystemPropertyUtil.get("web.application.dir")) {
+            System.out.println("The web application must be in:"+SystemPropertyUtil.get("web.application.dir"));
+        } else {
+            System.out.println("Using internal resources for web application");
+        }
+        this.manager = new PronghornFullDuplexManager(outputPipes, inputPipes);
+        this.bossGroup = bossGroup;
+        this.workerGroup = workerGroup;
     }
 
+    public static void setRelativeAppFolderRoot(String appFolder) {
+        
+        System.setProperty("web.application.dir", appFolder);
+    }
+    
     @Override
     public void startup() {
         // Configure SSL.

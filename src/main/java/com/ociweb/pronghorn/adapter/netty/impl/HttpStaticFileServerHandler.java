@@ -110,6 +110,7 @@ import static io.netty.handler.codec.http.HttpVersion.*;
  */
 public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
+    private static final String INDEX_HTML = "index.html";
     public static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
     public static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
     public static final int HTTP_CACHE_SECONDS = 60;
@@ -127,8 +128,9 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         }
 
         final String uri = request.uri();     
+               
         
-        final String path = sanitizeUri(uri);
+        final String path = sanitizeUri(uri, SystemPropertyUtil.get("user.dir"));
         
         if (path == null) {
             sendError(ctx, FORBIDDEN);
@@ -154,10 +156,10 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         sendFile(ctx, request, file);
     }
 
+    
+    
     public static void sendFile(ChannelHandlerContext ctx, FullHttpRequest request, File file)
             throws ParseException, IOException {
-        
-     //   new ChunkedStream(HttpStaticFileServerHandler.class.getResourceAsStream(name))
         
         long lastModified = file.lastModified();
         String path = file.getPath();
@@ -187,16 +189,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         }
         long fileLength = raf.length();
 
-        HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
-        HttpUtil.setContentLength(response, fileLength);
-        setContentTypeHeader(response, path);
-        setDateAndCacheHeaders(response, lastModified);
-        if (HttpUtil.isKeepAlive(request)) {
-            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-        }
-
-        // Write the initial line and the header.
-        ctx.write(response);
+        beginHTTPResponse(ctx, request, lastModified, path, fileLength);
 
         // Write the content.
         ChannelFuture sendFileFuture;
@@ -215,6 +208,29 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
             lastContentFuture = sendFileFuture;
         }
 
+        progressAndClose(request, sendFileFuture, lastContentFuture);
+    }
+
+
+
+    public static void beginHTTPResponse(ChannelHandlerContext ctx, FullHttpRequest request, long lastModified,
+            String path, long fileLength) {
+        HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
+        HttpUtil.setContentLength(response, fileLength);
+        setContentTypeHeader(response, path);
+        setDateAndCacheHeaders(response, lastModified);
+        if (HttpUtil.isKeepAlive(request)) {
+            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+        }
+
+        // Write the initial line and the header.
+        ctx.write(response);
+    }
+
+
+
+    public static void progressAndClose(FullHttpRequest request, ChannelFuture sendFileFuture,
+            ChannelFuture lastContentFuture) {
         sendFileFuture.addListener(new ChannelProgressiveFutureListener() {
             @Override
             public void operationProgressed(ChannelProgressiveFuture future, long progress, long total) {
@@ -238,6 +254,50 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         }
     }
 
+    private static final long STARTUP_TIME = System.currentTimeMillis();
+    
+    public static void sendResource(ChannelHandlerContext ctx, FullHttpRequest request, String name)
+            throws ParseException, IOException {
+        
+        
+        long lastModified = STARTUP_TIME;
+        String path = name;
+        
+        // Cache Validation
+        String ifModifiedSince = request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
+        if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
+            SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT, Locale.US);
+            Date ifModifiedSinceDate = dateFormatter.parse(ifModifiedSince);
+
+            // Only compare up to the second because the datetime format we send to the client
+            // does not have milliseconds
+            long ifModifiedSinceDateSeconds = ifModifiedSinceDate.getTime() / 1000;
+            long fileLastModifiedSeconds = lastModified / 1000;
+            if (ifModifiedSinceDateSeconds == fileLastModifiedSeconds) {
+                sendNotModified(ctx);
+                return;
+            }
+        }
+
+        ChunkedStream cs = new ChunkedStream(HttpStaticFileServerHandler.class.getResourceAsStream(name));
+        long fileLength = cs.length();
+
+        beginHTTPResponse(ctx, request, lastModified, path, fileLength);
+
+        // Write the content.
+        ChannelFuture sendFileFuture;
+        ChannelFuture lastContentFuture;
+
+        sendFileFuture =
+                ctx.writeAndFlush(new HttpChunkedInput(cs),
+                        ctx.newProgressivePromise());
+        // HttpChunkedInput will write the end marker (LastHttpContent) for us.
+        lastContentFuture = sendFileFuture;
+
+        progressAndClose(request, sendFileFuture, lastContentFuture);
+    }
+
+    
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         cause.printStackTrace();
@@ -248,7 +308,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
 
     private static final Pattern INSECURE_URI = Pattern.compile(".*[<>&\"].*");
 
-    public static String sanitizeUri(String uri) {
+    public static String sanitizeUri(String uri, String root) {
         // Decode the path.
         try {
             uri = URLDecoder.decode(uri, "UTF-8");
@@ -271,12 +331,23 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
             INSECURE_URI.matcher(uri).matches()) {
             return null;
         }
+        
+        //
 
         // Convert to absolute path.
-        String originalPath =  SystemPropertyUtil.get("user.dir") + (uri.startsWith(File.separator) ? uri : (File.separator + uri));
+        String separatorAndURI = uri.startsWith(File.separator) ? uri : (File.separator + uri);
+        if (null==root) {
+            if ("/".equals(uri)) {
+                return separatorAndURI+INDEX_HTML;
+            } else {
+                return separatorAndURI;
+            } 
+        }
+                
+        String originalPath =  root + separatorAndURI;
                 
         if ("/".equals(uri)) {
-            String indexPath = originalPath+"index.html";
+            String indexPath = originalPath+INDEX_HTML;
             if (new File(indexPath).exists()) {
                 return indexPath;
             } else {

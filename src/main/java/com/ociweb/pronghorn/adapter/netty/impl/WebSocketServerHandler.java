@@ -46,6 +46,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.GenericFutureListener;
+import io.netty.util.internal.SystemPropertyUtil;
 
 /**
  * Handles handshakes and messages
@@ -84,7 +85,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
         }
             
         
-        String path = HttpStaticFileServerHandler.sanitizeUri(req.uri());
+        String path = HttpStaticFileServerHandler.sanitizeUri(req.uri(), SystemPropertyUtil.get("user.dir"));
         System.out.println("path:"+path);
         if (null!=path) {
             File file = new File(path);

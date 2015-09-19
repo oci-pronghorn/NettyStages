@@ -37,6 +37,7 @@ import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.GenericFutureListener;
+import io.netty.util.internal.SystemPropertyUtil;
 
 /**
  * Handles handshakes and messages
@@ -80,25 +81,40 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
             return;
         }
             
+        String root = SystemPropertyUtil.get("web.application.dir");
+        String path = HttpStaticFileServerHandler.sanitizeUri(req.uri(), root);
+
         
-        String path = HttpStaticFileServerHandler.sanitizeUri(req.uri());
-        System.out.println("path:"+path);
-        if (null!=path) {
-            File file = new File(path);
-            if (file.exists() && ! file.isHidden()) {
+        if (null!=path && !path.endsWith(WEBSOCKET_PATH)) {
+            
+            System.out.println("PATH:"+path);
+            
+            if (null==root) {
+                //pull from resources
+                try {
+                     HttpStaticFileServerHandler.sendResource(ctx, req, path);
+                } catch (ParseException e) {
+                    throw new RuntimeException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 
+            } else {
+            
+                File file = new File(path);
                 try {
                     HttpStaticFileServerHandler.sendFile(ctx, req, file);
                 } catch (ParseException e) {
                    throw new RuntimeException(e);
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                   throw new RuntimeException(e);
                 }
                 
                 return;
             }
+                        
         }
-          
+         
 
         // Handshake
         WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(getWebSocketLocation(req), null, true);
