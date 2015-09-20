@@ -146,19 +146,20 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
    
 
     private void handleWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) {
-        //  System.out.println("new content to send");
 
         // Check for closing frame
         if (frame instanceof CloseWebSocketFrame) {
             handshaker.close(ctx.channel(), (CloseWebSocketFrame) frame.retain());
             return;
         }
+        
         if (frame instanceof PingWebSocketFrame) {
             ctx.channel().write(new PongWebSocketFrame(frame.content().retain()));
             return;
         }
 
         Attribute<PronghornFullDuplex> attrib = ctx.channel().attr(PRONGHORN_KEY);
+  
         if (!frame.isFinalFragment()) {
             attrib.get().partialSendToPipe(frame.content());         
         } else {

@@ -141,8 +141,7 @@ public class WebSocketServerPronghornStage extends PronghornStage{
     @Override
     public void shutdown() {
         
-        try {
-            
+        try {            
             channel.closeFuture().sync();
             
         } catch (InterruptedException e) {

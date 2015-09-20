@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.ociweb.pronghorn.pipe.FieldReferenceOffsetManager;
 import com.ociweb.pronghorn.pipe.Pipe;
+import com.ociweb.pronghorn.util.MemberHolder;
 import com.ociweb.pronghorn.util.ServiceObjectHolder;
 
 import io.netty.buffer.ByteBuf;
@@ -25,11 +26,17 @@ public class PronghornPipeToChannel implements Runnable {
     private int iteration;
     
     private final ServiceObjectHolder<Channel> channelHolder;
+    private final MemberHolder subscriptionHolder;
     
-    public PronghornPipeToChannel(ServiceObjectHolder<Channel> channelHolder, Pipe fromPronghorn, Pipe toPronghorn, EventLoop eventLoop) {
+    private final int singleMsgId;
+    private final int subscriptMsgId;
+    
+    
+    public PronghornPipeToChannel(ServiceObjectHolder<Channel> channelHolder, Pipe fromPronghorn, Pipe toPronghorn, MemberHolder subscriptionHolder, EventLoop eventLoop) {
         this.fromPronghorn = fromPronghorn;
         this.toPronghorn = toPronghorn;
         this.channelHolder = channelHolder;
+        this.subscriptionHolder = subscriptionHolder;
         this.eventLoop = eventLoop;
         
         int reqFreeSpace = 2*FieldReferenceOffsetManager.maxFragmentSize(Pipe.from(toPronghorn));        
@@ -38,6 +45,10 @@ public class PronghornPipeToChannel implements Runnable {
         FieldReferenceOffsetManager from = Pipe.from(fromPronghorn);
         
         messageSize = from.fragDataSize[0];
+        
+        FieldReferenceOffsetManager FROM = Pipe.from(fromPronghorn);
+        singleMsgId = FieldReferenceOffsetManager.lookupTemplateLocator(1, FROM);
+        subscriptMsgId = FieldReferenceOffsetManager.lookupTemplateLocator(2, FROM);         
         
     }
 
@@ -50,12 +61,29 @@ public class PronghornPipeToChannel implements Runnable {
         while (Pipe.contentToLowLevelRead(fromPronghorn, messageSize) ) {
   
             //peek all the fields because we may need to abandon this if there is no room 
-           // int msgId      = Pipe.peekInt(fromPronghorn,  0);
+            final int msgId      = Pipe.peekInt(fromPronghorn,  0);
+           
+            
+            //singleMsgId
+            
+            if (msgId == subscriptMsgId) {
+              //  subscriptionHolder.visit(listId, visitor);
+                
+                
+            }
+            
+            
             long channelId = Pipe.peekLong(fromPronghorn, 1);
             int meta       = Pipe.peekInt(fromPronghorn,  3);
             int len        = Pipe.peekInt(fromPronghorn,  4);
-                                    
+            
+            //Must look up each chanel for the group subscription.
+            
+            
             Channel ch = channelHolder.getValid(channelId);
+            
+            
+            
             if (null == ch) {
                 //May want to log this "connection closed and can not get response"
                 //dump message and move on since caller is no longer attached.
@@ -63,14 +91,11 @@ public class PronghornPipeToChannel implements Runnable {
                 Pipe.addAndGetWorkingTail(fromPronghorn, messageSize-1);
                 Pipe.releaseReads(fromPronghorn);
             } else {
-                //TODO: AAA  use of Text frame is wrong if we were doing round trip of array.!!!!
-                
+
                 //only write when we know there is enough room 
                 if (len < ch.bytesBeforeUnwritable()) {
                     
-//zero copy async                    
-                    //Trips/sec 3403.5311635822163 mbps 169.01843523984257
-                    //zero copy ByteBuf into PronghornRingBuffer
+                    //zero copy async                    
                     ByteBuf msg = Unpooled.copiedBuffer(Pipe.wrappedUnstructuredLayoutBufferA(fromPronghorn, meta, len),
                                                         Pipe.wrappedUnstructuredLayoutBufferB(fromPronghorn, meta, len) );
                                         
@@ -81,54 +106,15 @@ public class PronghornPipeToChannel implements Runnable {
                     Pipe.confirmLowLevelRead(fromPronghorn, messageSize);
                     Pipe.addAndGetWorkingTail(fromPronghorn, messageSize-1);
                     //this enables the next block to be read from the right offset, without waiting for the above write
-                    Pipe.markBytesReadBase(fromPronghorn, Pipe.takeValue(fromPronghorn));
-                    
-                    
-                                   
-//full copy                    
-//                    //Trips/sec 3204.7858134814655 mbps 159.14879501305282
-//                    byte[] target = new byte[len]; //TODO. get from pool!!!
-//                    Pipe.readBytes(fromPronghorn, target, 0, 0xFFFFFF, meta, len);
-//                    ch.writeAndFlush(new TextWebSocketFrame(Unpooled.wrappedBuffer(target)),ch.voidPromise());
-//                    //
-//                    Pipe.confirmLowLevelRead(fromPronghorn, messageSize);
-//                    Pipe.addAndGetWorkingTail(fromPronghorn, messageSize-1);
-//                    //this enables the next block to be written from the right offset
-//                    Pipe.markBytesReadBase(fromPronghorn, Pipe.takeValue(fromPronghorn));                    
-//                    //our position which much be released after the write is complete.
-//                    int bytesWorkingTail = Pipe.bytesWorkingTailPosition(fromPronghorn);
-//                    long workingTail = Pipe.getWorkingTailPosition(fromPronghorn);   
-//                    //this releases this portion of ring back for the next writer to use.
-//                    Pipe.batchedReleasePublish(fromPronghorn,bytesWorkingTail,workingTail); 
-                    
-                    
-                    
-//zero copy and sync                    
-//                    //Trips/sec 3318.675848336514 mbps 164.80454328019997
-//                    try {
-//                      ByteBuf msg = Unpooled.copiedBuffer( Pipe.wrappedUnstructuredLayoutBufferA(fromPronghorn, meta, len),
-//                      Pipe.wrappedUnstructuredLayoutBufferB(fromPronghorn, meta, len) );
-//                        ch.writeAndFlush(new TextWebSocketFrame(msg)).sync();
-//                    } catch (InterruptedException e) {
-//                       Thread.currentThread().interrupt();
-//                       return;
-//                    }
-//                    //
-//                    Pipe.confirmLowLevelRead(fromPronghorn, messageSize);
-//                    Pipe.addAndGetWorkingTail(fromPronghorn, messageSize-1);
-//                    //this enables the next block to be written from the right offset
-//                    Pipe.markBytesReadBase(fromPronghorn, Pipe.takeValue(fromPronghorn));                    
-//                    //our position which much be released after the write is complete.
-//                    int bytesWorkingTail = Pipe.bytesWorkingTailPosition(fromPronghorn);
-//                    long workingTail = Pipe.getWorkingTailPosition(fromPronghorn);   
-//                    //this releases this portion of ring back for the next writer to use.
-//                    Pipe.batchedReleasePublish(fromPronghorn,bytesWorkingTail,workingTail); 
-                    
+                    Pipe.markBytesReadBase(fromPronghorn, Pipe.takeValue(fromPronghorn));               
+   
                                     
                 } else {
                     break;
                 }
             }
+            
+            
                         
         }
                

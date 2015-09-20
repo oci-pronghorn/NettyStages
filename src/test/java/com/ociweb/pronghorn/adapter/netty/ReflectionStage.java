@@ -35,14 +35,14 @@ public class ReflectionStage extends PronghornStage {
             int offset     = Pipe.bytePosition(meta, input, len);
             
             
-            StringBuilder builder = (StringBuilder)Pipe.readUTF8(input, new StringBuilder(), meta, len);
-            
-            Pipe.addUTF8(builder, output);
-            
+            //assumes UTF8 data
+        //    StringBuilder builder = (StringBuilder)Pipe.readUTF8(input, new StringBuilder(), meta, len);            
+        //    Pipe.addUTF8(builder, output);         
         //   System.out.println("ReflectionStage bounce:"+builder);
                          
             
-      //      Pipe.addByteArrayWithMask(output, mask, len, backing, offset);
+            //assumes nothing about the data
+            Pipe.addByteArrayWithMask(output, mask, len, backing, offset);
             
             
             Pipe.confirmLowLevelWrite(output, msgSize);

@@ -2,6 +2,7 @@ package com.ociweb.pronghorn.adapter.netty.impl;
 
 import com.ociweb.pronghorn.pipe.Pipe;
 import com.ociweb.pronghorn.pipe.util.hash.LongHashTable;
+import com.ociweb.pronghorn.util.MemberHolder;
 import com.ociweb.pronghorn.util.ServiceObjectHolder;
 import com.ociweb.pronghorn.util.ServiceObjectValidator;
 
@@ -16,6 +17,7 @@ public class PronghornFullDuplexManager {
     private final Pipe[] toPronghorn;
     private final Pipe[] fromPronghorn;
     private final ServiceObjectHolder<Channel>[] channelLookup;
+    private final MemberHolder[] subscriptionLookup;
     
     private int assignedPipeCount = 0;
 
@@ -36,7 +38,7 @@ public class PronghornFullDuplexManager {
         this.toPronghorn = toPronghorn;
         this.fromPronghorn = fromPronghorn;
         this.channelLookup = new ServiceObjectHolder[toPronghorn.length];
-        
+        this.subscriptionLookup = new MemberHolder[toPronghorn.length];
     }
             
          
@@ -59,18 +61,21 @@ public class PronghornFullDuplexManager {
               pipeOrdinal = ++assignedPipeCount;
               LongHashTable.setItem(threadsToOrdinals, threadId, pipeOrdinal);              
           } 
-          pipeIdx = pipeOrdinal-1;  
-          channelLookup[pipeIdx] = new ServiceObjectHolder<Channel>(Channel.class, validator);   
+          pipeIdx = pipeOrdinal-1;
+          channelLookup[pipeIdx] = new ServiceObjectHolder<Channel>(Channel.class, validator); 
+          int maxSubcriptionGroups = 5;
+          subscriptionLookup[pipeIdx] = new MemberHolder(maxSubcriptionGroups);
           
           EventLoop eventLoop = channel.eventLoop();
-          eventLoop.execute(new PronghornPipeToChannel(channelLookup[pipeIdx], fromPronghorn[pipeIdx], toPronghorn[pipeIdx], eventLoop));
+          eventLoop.execute(new PronghornPipeToChannel(channelLookup[pipeIdx], fromPronghorn[pipeIdx], toPronghorn[pipeIdx], subscriptionLookup[pipeIdx], eventLoop));
           
         } else {
             pipeIdx = pipeOrdinal-1; 
         }
         
         //we know this is only called by the same thread for this channelId instance.
-        return new PronghornFullDuplex(channelLookup[pipeIdx].add(channel), toPronghorn[pipeIdx]);  
+        return new PronghornFullDuplex(channelLookup[pipeIdx].add(channel), toPronghorn[pipeIdx], pipeIdx);  
     }
-
+  
+    
 }
