@@ -48,20 +48,7 @@
 			<scope>test</scope>
 			<optional>false</optional>
 		</dependency>
-        <dependency>
-            <groupId>com.ociweb</groupId>
-            <artifactId>TestingComponent</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.AssertLogger</groupId>
-            <artifactId>AssertLogger</artifactId>
-            <version>0.3.0-SNAPSHOT</version>
-            <type>jar</type>
-            <scope>test</scope>
-            <optional>false</optional>
-        </dependency>
+
 
   </dependencies>
   
@@ -79,7 +66,7 @@
 				    </compilerArguments -->
 					
 					<source>1.7</source>
-					<target>1.8</target>
+					<target>1.7</target>
 					<encoding>UTF-8</encoding>
 				</configuration>
 		</plugin>

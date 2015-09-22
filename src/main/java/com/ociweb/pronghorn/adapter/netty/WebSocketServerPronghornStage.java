@@ -36,7 +36,7 @@ import io.netty.util.internal.SystemPropertyUtil;
 public class WebSocketServerPronghornStage extends PronghornStage{
 
     public static final boolean SSL = System.getProperty("ssl") != null;
-    private static final int PORT = Integer.parseInt(System.getProperty("port", SSL? "8443" : "8080"));
+    private static final int PORT = Integer.parseInt(System.getProperty("port", SSL? "8443" : "8088")); //NOTE: set to avoid 8080 needed by MQTT broker, not sure why moquette must have that port.
     
     private ChannelFuture channelFuture;
     private Channel channel;
@@ -126,10 +126,8 @@ public class WebSocketServerPronghornStage extends PronghornStage{
                 channel = channelFuture.channel();
                 System.out.println("Open your web browser and navigate to " +
                         (SSL? "https" : "http") + "://127.0.0.1:" + PORT + '/');
-            } else if (channelFuture.isDone()) {
-                //Not success but done
-                throw new UnsupportedOperationException("Unable to start server");
-                
+            } else if (channelFuture.isDone()) {            
+                throw new RuntimeException(channelFuture.cause());
             }
             
         } else {

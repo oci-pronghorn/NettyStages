@@ -9,7 +9,6 @@ public class VarLenLong {
     //////////////////////////////////////////////////////////////////////////
     
     public static final void writeLongSigned(long value, ByteBuffer byteBuffer) {
-        assert(byteBuffer.remaining()<10) : "May not be enough room to write long";
         if (value >=0) {
             writeLongSignedPos(value, byteBuffer);
         } else {

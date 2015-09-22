@@ -22,15 +22,15 @@ public class MemberHolder {
     //is not thread safe so only one thread should add members
     //TODO: in the future, add Bloom filter to make this function as a set.
     public void addMember(int listId, long member) {        
-        if (data[listId].remaining()<10) {
+        if (data[listId].remaining()<=10) {
             ///must grow 
-            if (data[listId].remaining()<10) {
-                ByteBuffer buff = data[listId];
-                ByteBuffer newBuff = ByteBuffer.allocate(buff.capacity()*2);
-                buff.flip();
-                newBuff.put(buff);
-                data[listId] = buff = newBuff;
-            }
+            ByteBuffer buff = data[listId];
+            ByteBuffer newBuff = ByteBuffer.allocate(buff.capacity()*2);
+            buff.flip();
+            newBuff.put(buff);
+            data[listId] = buff = newBuff;
+            assert(data[listId].remaining()>10) : "failure in growing ByteBuffer";
+
         }        
         VarLenLong.writeLongSigned(member, data[listId]);
     }

@@ -77,5 +77,9 @@ public class PronghornFullDuplexManager {
         return new PronghornFullDuplex(channelLookup[pipeIdx].add(channel), toPronghorn[pipeIdx], pipeIdx);  
     }
   
+    public Pipe getToPronghornPipe(int pipeIdx) {
+        return toPronghorn[pipeIdx];
+    }
+    
     
 }

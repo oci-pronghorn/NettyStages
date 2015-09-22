@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ociweb.pronghorn.adapter.netty.WebSocketServerStage;
+import com.ociweb.pronghorn.pipe.Pipe;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
@@ -49,6 +50,9 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
     
     private final PronghornFullDuplexManager pfdm;
     private WebSocketServerHandshaker handshaker;
+    
+    private int continuationDataPos;//held in case of continuation
+    private boolean continuationInProgress;
        
     public WebSocketServerHandlerPronghornAdapter(PronghornFullDuplexManager pfdm) {
         this.pfdm = pfdm;
@@ -130,11 +134,14 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
                     
                     //the runnable will call read as needed based on how much data is on the outgoing pipe
                     future.channel().config().setAutoRead(false);
-                    
+
                     Attribute<PronghornFullDuplex> attrib = future.channel().attr(PRONGHORN_KEY);
                     assert(null == attrib.get()) : "This new connection should not already have anything set";
                     
-                    attrib.set(pfdm.buildNewDuplexObject(future.channel()));
+                    PronghornFullDuplex newDuplexObject = pfdm.buildNewDuplexObject(future.channel());
+                    continuationDataPos = Pipe.bytesWorkingHeadPosition(pfdm.getToPronghornPipe(newDuplexObject.pipeId));
+                    
+                    attrib.set(newDuplexObject);
                           
                 }
                 
@@ -143,7 +150,7 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
         }
     }
 
-   
+   //TODO: also tie into GraphManager telemetry so watch pipe remotely
 
     private void handleWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) {
 
@@ -158,12 +165,20 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
             return;
         }
 
+        //pfdm.getToPronghornPipe(pipeIdx)
+        
         Attribute<PronghornFullDuplex> attrib = ctx.channel().attr(PRONGHORN_KEY);
+        Pipe toPronghornPipe = pfdm.getToPronghornPipe(attrib.get().pipeId);
   
         if (!frame.isFinalFragment()) {
-            attrib.get().partialSendToPipe(frame.content());         
+            attrib.get().partialSendToPipe(frame.content(), continuationInProgress, toPronghornPipe);    
+            continuationInProgress = true;
         } else {
-            attrib.get().sendToPipe(frame.content());
+            attrib.get().sendToPipe(frame.content(), continuationDataPos, continuationInProgress, toPronghornPipe);
+            //finished final fragment so capture this now
+            continuationDataPos = Pipe.bytesWorkingHeadPosition(toPronghornPipe);
+            
+            continuationInProgress = false;
         }      
         
     }
