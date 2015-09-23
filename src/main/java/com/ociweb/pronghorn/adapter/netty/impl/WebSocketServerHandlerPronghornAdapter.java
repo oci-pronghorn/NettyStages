@@ -8,13 +8,12 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ociweb.pronghorn.adapter.netty.WebSocketServerStage;
 import com.ociweb.pronghorn.pipe.Pipe;
+import com.ociweb.pronghorn.util.MemberHolder;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -25,12 +24,9 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpUtil;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.ContinuationWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
@@ -169,12 +165,13 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
         
         Attribute<PronghornFullDuplex> attrib = ctx.channel().attr(PRONGHORN_KEY);
         Pipe toPronghornPipe = pfdm.getToPronghornPipe(attrib.get().pipeId);
+        MemberHolder subscriptionHolder = pfdm.getMemberHolder(attrib.get().pipeId);
   
         if (!frame.isFinalFragment()) {
-            attrib.get().partialSendToPipe(frame.content(), continuationInProgress, toPronghornPipe);    
+            attrib.get().partialSendToPipe(frame.content(), continuationInProgress, toPronghornPipe, subscriptionHolder);    
             continuationInProgress = true;
         } else {
-            attrib.get().sendToPipe(frame.content(), continuationDataPos, continuationInProgress, toPronghornPipe);
+            attrib.get().sendToPipe(frame.content(), continuationDataPos, continuationInProgress, toPronghornPipe, subscriptionHolder);
             //finished final fragment so capture this now
             continuationDataPos = Pipe.bytesWorkingHeadPosition(toPronghornPipe);
             

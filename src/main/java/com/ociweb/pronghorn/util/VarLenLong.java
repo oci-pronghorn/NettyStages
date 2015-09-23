@@ -9,6 +9,10 @@ public class VarLenLong {
     //////////////////////////////////////////////////////////////////////////
     
     public static final void writeLongSigned(long value, ByteBuffer byteBuffer) {
+        if (0!=(value & 0x8000000000000000l )) {
+            throw new UnsupportedOperationException("Out of bounds: Encoding does not support the use of the highest bit in signed long value.");
+        }        
+        
         if (value >=0) {
             writeLongSignedPos(value, byteBuffer);
         } else {

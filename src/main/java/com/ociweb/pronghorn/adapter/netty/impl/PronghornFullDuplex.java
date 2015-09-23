@@ -2,7 +2,9 @@ package com.ociweb.pronghorn.adapter.netty.impl;
 
 import java.nio.ByteBuffer;
 
+import com.ociweb.pronghorn.pipe.FieldReferenceOffsetManager;
 import com.ociweb.pronghorn.pipe.Pipe;
+import com.ociweb.pronghorn.util.MemberHolder;
 
 import io.netty.buffer.ByteBuf;
 
@@ -16,20 +18,15 @@ public class PronghornFullDuplex {
     
     private static final int MSG_SIZE = 0;
     
+    
     public PronghornFullDuplex(long channelIndex, Pipe toPronghorn, int pipeId) {
         this.channelIndex = channelIndex;
         this.pipeId = pipeId; //NOTE: this is only needed for subscription.
     }
     
-    public void partialSendToPipe(ByteBuf content, boolean continuationInProgress, Pipe toPronghorn) {
+    public void partialSendToPipe(ByteBuf content, boolean continuationInProgress, Pipe toPronghorn, MemberHolder subscriptionHolder) {
         
-        if (!continuationInProgress) {
-            System.out.println("continuation started");
-            
-            if (isSubscription(content)) {
-                registerSubscription(toPronghorn); 
-            }
-                        
+        if (!continuationInProgress) {        
             //This block is here only for safety and is never expected to spin unless there is a logic failure somewhere
             while (!Pipe.roomToLowLevelWrite(toPronghorn, MSG_SIZE)) {
                 Thread.yield();
@@ -43,20 +40,51 @@ public class PronghornFullDuplex {
         Pipe.copyByteBuffer(content.nioBuffer(), len, toPronghorn);
     }
     
-    private boolean isSubscription(ByteBuf content) {
-        // TODO Auto-generated method stub
-        return false;
+    private boolean isSubscriptionAdmin(ByteBuf content) {
+        //subscriptions are 2 bytes long, first byte is small and second is 1 or 0
+        return (2==content.readableBytes() && (content.getByte(0)>=0) && (content.getByte(0)<10) && ((content.getByte(1)==0) || (content.getByte(1)==1)) ); 
     }
 
-    private void registerSubscription(Pipe toPronghorn) {
+    private void processSubscription(ByteBuf content, MemberHolder subscriptionHolder, Pipe pipe) {
 
-        
-        //  we have channelIndex which is memberId
-        //  content[0] subcription group id
-        //  what is the pipe id? where is the list
-                          
+        boolean wasEmpty = subscriptionHolder.isEmpty(content.getByte(0));
+        if (0==content.getByte(1)) {
+            
+            subscriptionHolder.removeMember(content.getByte(0), channelIndex);            
+            boolean nowEmpty = subscriptionHolder.isEmpty(content.getByte(0));
+            
+            if (nowEmpty && !wasEmpty) {
+                //send stop message    
+                while (!Pipe.roomToLowLevelWrite(pipe, WebSocketFROM.stopSubPublishIdSize)) {
+                    assert(false) : "Just for safety the caller should have checked for space first.";
+                }
+                
+                Pipe.addMsgIdx(pipe, WebSocketFROM.stopSubPublishIdx);
+                Pipe.addIntValue(content.getByte(0), pipe);
+                Pipe.publishWrites(pipe);
+                
+                Pipe.confirmLowLevelWrite(pipe, WebSocketFROM.stopSubPublishIdSize);
+            }
+            
+        } else {
+            
+            if (0==subscriptionHolder.containsCount(content.getByte(0), channelIndex)) {
+                subscriptionHolder.addMember(content.getByte(0), channelIndex);        
+                if (wasEmpty) {
+                    //send start message
+                    while (!Pipe.roomToLowLevelWrite(pipe, WebSocketFROM.startSubPublishIdSize)) {
+                        assert(false) : "Just for safety the caller should have checked for space first.";
+                    }
+                    
+                    Pipe.addMsgIdx(pipe, WebSocketFROM.startSubPublishIdx);
+                    Pipe.addIntValue(content.getByte(0), pipe);
+                    Pipe.publishWrites(pipe);
+                    
+                    Pipe.confirmLowLevelWrite(pipe,  WebSocketFROM.startSubPublishIdSize);
+                }
+            }
+        }
          
-        
     }
 
     private void endPartialSendToPipe(ByteBuf content, int continuationDataPos, Pipe toPronghorn) {
@@ -81,7 +109,7 @@ public class PronghornFullDuplex {
     }
     
     
-    public void sendToPipe(ByteBuf content, int continuationDataPos, boolean continuationInProgress, Pipe toPronghorn) {
+    public void sendToPipe(ByteBuf content, int continuationDataPos, boolean continuationInProgress, Pipe toPronghorn, MemberHolder subscriptionHolder) {
         
         //This block is here only for safety and is never expected to spin unless there is a logic failure somewhere
         while (!Pipe.roomToLowLevelWrite(toPronghorn, MSG_SIZE)) {
@@ -89,15 +117,16 @@ public class PronghornFullDuplex {
         }
 
         if (!continuationInProgress) {        
-        
-            if (isSubscription(content)) {
-                registerSubscription(toPronghorn); 
+            //subscription admin must never be part of a continuation, these are very short.
+            if (isSubscriptionAdmin(content)) {
+                processSubscription(content, subscriptionHolder, toPronghorn); 
+            } else {
+                //send content
+                Pipe.addMsgIdx(toPronghorn, 0);
+                Pipe.addLongValue(channelIndex, toPronghorn);
+                Pipe.addByteBuffer(content.nioBuffer(), toPronghorn);
+                Pipe.publishWrites(toPronghorn);
             }
-            
-            Pipe.addMsgIdx(toPronghorn, 0);
-            Pipe.addLongValue(channelIndex, toPronghorn);
-            Pipe.addByteBuffer(content.nioBuffer(), toPronghorn);
-            Pipe.publishWrites(toPronghorn);
         } else {
             endPartialSendToPipe(content, continuationDataPos, toPronghorn);
         }

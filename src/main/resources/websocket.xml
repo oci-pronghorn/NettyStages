@@ -2,17 +2,29 @@
 <templates xmlns="http://www.fixprotocol.org/ns/fast/td/1.1">
   
    <template name="WebSocketFragment" id="1" xmlns="http://www.fixprotocol.org/ns/fast/td/1.1">
-        <uInt64 name="ChannelId"   id="10">
+        <uInt64 name="ChannelId" id="10">
             <delta/>
         </uInt64>
         <string name="Payload" id="12" encoding="utf8"/>     
    </template>
     
    <template name="WebSocketFragmentForSubscribers" id="2" xmlns="http://www.fixprotocol.org/ns/fast/td/1.1">
-        <uInt32 name="SubscriptionId"   id="11">
+        <uInt32 name="SubscriptionId" id="11">
             <delta/>
         </uInt32>
         <string name="Payload" id="12" encoding="utf8"/>     
+   </template>
+   
+   <template name="StartPublishSubsription" id="3" xmlns="http://www.fixprotocol.org/ns/fast/td/1.1">
+        <uInt32 name="SubscriptionId" id="11">
+            <delta/>
+        </uInt32> 
+   </template>
+
+   <template name="StopPublishSubscription" id="4" xmlns="http://www.fixprotocol.org/ns/fast/td/1.1">
+        <uInt32 name="SubscriptionId" id="11">
+            <delta/>
+        </uInt32>    
    </template>
    
 </templates>

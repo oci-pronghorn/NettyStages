@@ -4,4 +4,6 @@ public interface MemberHolderVisitor {
 
     void visit(long value);
 
+    void finished();
+    
 }

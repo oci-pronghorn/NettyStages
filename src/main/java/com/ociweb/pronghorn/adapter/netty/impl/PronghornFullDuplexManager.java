@@ -81,5 +81,9 @@ public class PronghornFullDuplexManager {
         return toPronghorn[pipeIdx];
     }
     
+    public MemberHolder getMemberHolder(int pipeIdx) {
+        return subscriptionLookup[pipeIdx];
+    }
+    
     
 }
