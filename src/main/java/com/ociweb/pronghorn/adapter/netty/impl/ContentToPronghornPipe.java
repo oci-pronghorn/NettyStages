@@ -8,7 +8,7 @@ import com.ociweb.pronghorn.util.MemberHolder;
 
 import io.netty.buffer.ByteBuf;
 
-public class PronghornFullDuplex {
+public class ContentToPronghornPipe {
     ///////////////////////////////////////////////////////////
     //Keep this small there is one for every channel/connection
     ///////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ public class PronghornFullDuplex {
     private static final int MSG_SIZE = 0;
     
     
-    public PronghornFullDuplex(long channelIndex, Pipe toPronghorn, int pipeId) {
+    public ContentToPronghornPipe(long channelIndex, Pipe toPronghorn, int pipeId) {
         this.channelIndex = channelIndex;
         this.pipeId = pipeId; //NOTE: this is only needed for subscription.
     }
@@ -28,7 +28,7 @@ public class PronghornFullDuplex {
         
         if (!continuationInProgress) {        
             //This block is here only for safety and is never expected to spin unless there is a logic failure somewhere
-            while (!Pipe.roomToLowLevelWrite(toPronghorn, MSG_SIZE)) {
+            while (!Pipe.hasRoomForWrite(toPronghorn, MSG_SIZE)) {
                 Thread.yield();
             }
             Pipe.addMsgIdx(toPronghorn, 0);
@@ -47,22 +47,23 @@ public class PronghornFullDuplex {
 
     private void processSubscription(ByteBuf content, MemberHolder subscriptionHolder, Pipe pipe) {
 
+                
         boolean wasEmpty = subscriptionHolder.isEmpty(content.getByte(0));
         if (0==content.getByte(1)) {
-            
             subscriptionHolder.removeMember(content.getByte(0), channelIndex);            
             boolean nowEmpty = subscriptionHolder.isEmpty(content.getByte(0));
             
             if (nowEmpty && !wasEmpty) {
                 //send stop message    
-                while (!Pipe.roomToLowLevelWrite(pipe, WebSocketFROM.stopSubPublishIdSize)) {
+                while (!Pipe.hasRoomForWrite(pipe, WebSocketFROM.stopSubPublishIdSize)) {
                     assert(false) : "Just for safety the caller should have checked for space first.";
                 }
                 
+                System.out.println("stop publish "+WebSocketFROM.FROM.fieldNameScript[WebSocketFROM.stopSubPublishIdx]);
+                
                 Pipe.addMsgIdx(pipe, WebSocketFROM.stopSubPublishIdx);
                 Pipe.addIntValue(content.getByte(0), pipe);
-                Pipe.publishWrites(pipe);
-                
+                Pipe.publishWrites(pipe);                
                 Pipe.confirmLowLevelWrite(pipe, WebSocketFROM.stopSubPublishIdSize);
             }
             
@@ -76,10 +77,10 @@ public class PronghornFullDuplex {
                         assert(false) : "Just for safety the caller should have checked for space first.";
                     }
                     
+                    System.out.println("start publish");
                     Pipe.addMsgIdx(pipe, WebSocketFROM.startSubPublishIdx);
                     Pipe.addIntValue(content.getByte(0), pipe);
-                    Pipe.publishWrites(pipe);
-                    
+                    Pipe.publishWrites(pipe);                    
                     Pipe.confirmLowLevelWrite(pipe,  WebSocketFROM.startSubPublishIdSize);
                 }
             }
@@ -112,7 +113,7 @@ public class PronghornFullDuplex {
     public void sendToPipe(ByteBuf content, int continuationDataPos, boolean continuationInProgress, Pipe toPronghorn, MemberHolder subscriptionHolder) {
         
         //This block is here only for safety and is never expected to spin unless there is a logic failure somewhere
-        while (!Pipe.roomToLowLevelWrite(toPronghorn, MSG_SIZE)) {
+        while (!Pipe.hasRoomForWrite(toPronghorn, MSG_SIZE)) {
             Thread.yield();
         }
 
@@ -122,7 +123,9 @@ public class PronghornFullDuplex {
                 processSubscription(content, subscriptionHolder, toPronghorn); 
             } else {
                 //send content
-                Pipe.addMsgIdx(toPronghorn, 0);
+                System.out.println("send content for single ChannelMessageIdx ");
+                
+                Pipe.addMsgIdx(toPronghorn, WebSocketFROM.forSingleChannelMessageIdx);
                 Pipe.addLongValue(channelIndex, toPronghorn);
                 Pipe.addByteBuffer(content.nioBuffer(), toPronghorn);
                 Pipe.publishWrites(toPronghorn);

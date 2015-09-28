@@ -30,7 +30,7 @@ public class PronghornPipeToChannel implements Runnable {
         this.eventLoop = eventLoop;
         
         int reqFreeSpace = 2*FieldReferenceOffsetManager.maxFragmentSize(Pipe.from(toPronghorn));        
-        this.maxPipeContentLimit = toPronghorn.sizeOfStructuredLayoutRingBuffer - reqFreeSpace;
+        this.maxPipeContentLimit = toPronghorn.sizeOfSlabRing - reqFreeSpace;
         
         FieldReferenceOffsetManager from = Pipe.from(fromPronghorn);
   
@@ -42,50 +42,69 @@ public class PronghornPipeToChannel implements Runnable {
         ///////////////////////////
         //read from Pipe and write out to network
         //////////////////////////
-        
-        while (Pipe.contentToLowLevelRead(fromPronghorn, 1) ) {
+                        
+        while (Pipe.hasContentToRead(fromPronghorn) ) {
   
             //peek all the fields because we may need to abandon this if there is no room 
             final int msgId      = Pipe.takeMsgIdx(fromPronghorn);
             
-            System.out.println("from pronghorn message "+msgId + WebSocketFROM.FROM.fieldNameScript[msgId]);
-                       
-            if (msgId==WebSocketFROM.subscriptionMessageIdx) { //send to all the  clients on this pipe who have this subscription
+
+            if (msgId==WebSocketFROM.forSubscribersMessageIdx) { //send to all the  clients on this pipe who have this subscription
                 
                         int subId      = Pipe.takeValue(fromPronghorn);
                         int meta       = Pipe.takeValue(fromPronghorn);
                         int len        = Pipe.takeValue(fromPronghorn);
+                        int bytesUsed  = Pipe.takeValue(fromPronghorn);
                         
+                        //TODO: this is a questionable feature we should revisit, block has length just take the value instead of using this pos.
+                        Pipe.addAndGetBytesWorkingTailPosition(fromPronghorn, len);//NOTE: for low level read we have to inc on our own.
+                                                
                         SubscriptionDistributor sd = new SubscriptionDistributor(fromPronghorn,
-                                Pipe.bytesWorkingTailPosition(fromPronghorn),Pipe.getWorkingTailPosition(fromPronghorn),
-                                Pipe.wrappedUnstructuredLayoutBufferA(fromPronghorn, meta, len),
-                                Pipe.wrappedUnstructuredLayoutBufferB(fromPronghorn, meta, len), channelHolder);
+                                
+                                Pipe.bytesWorkingTailPosition(fromPronghorn),
+                                Pipe.getWorkingTailPosition(fromPronghorn),
+                                
+                                Pipe.wrappedBlobRingA(fromPronghorn, meta, len),
+                                Pipe.wrappedBlobRingB(fromPronghorn, meta, len), channelHolder);
                         
                         subscriptionHolder.visit(subId, sd);
-             } if (msgId==WebSocketFROM.singleMessageIdx) { //send to single client
+                        
+                        //this enables the next block to be read from the right offset, without waiting for the above write
+                        Pipe.markBytesReadBase(fromPronghorn, bytesUsed); 
+                        
+                        
+             } else if (msgId==WebSocketFROM.forSingleChannelMessageIdx) { //send to single client
+                        
                         long channelId = Pipe.takeLong(fromPronghorn);
                         int meta       = Pipe.takeValue(fromPronghorn);
                         int len        = Pipe.takeValue(fromPronghorn);  
-                        
+                        int bytesUsed  = Pipe.takeValue(fromPronghorn);
+                 
+                        //TODO: this is a questionable feature we should revisit, block has length just take the value instead of using this pos.
+                        Pipe.addAndGetBytesWorkingTailPosition(fromPronghorn, len);//NOTE: for low level read we have to inc on our own.
+                                                
                         SubscriptionDistributor sd = new SubscriptionDistributor(fromPronghorn,
-                                Pipe.bytesWorkingTailPosition(fromPronghorn),Pipe.getWorkingTailPosition(fromPronghorn),
-                                Pipe.wrappedUnstructuredLayoutBufferA(fromPronghorn, meta, len),
-                                Pipe.wrappedUnstructuredLayoutBufferB(fromPronghorn, meta, len), channelHolder);
-                        
+                                
+                                Pipe.bytesWorkingTailPosition(fromPronghorn), //already moved up to end
+                                Pipe.getWorkingTailPosition(fromPronghorn),   //already moved up to end
+                                
+                                Pipe.wrappedBlobRingA(fromPronghorn, meta, len),
+                                Pipe.wrappedBlobRingB(fromPronghorn, meta, len), channelHolder);
+
                         sd.visit(channelId);
-                        sd.finished();
+                        sd.finished();                      
+                        
+                        //this enables the next block to be read from the right offset, without waiting for the above write
+                        Pipe.markBytesReadBase(fromPronghorn, bytesUsed);  
+                                                
               } else {
                   
-                  //Reflection?
-                  
                   throw new UnsupportedOperationException();
-                  //unknown?
+
               }
      
              Pipe.confirmLowLevelRead(fromPronghorn, WebSocketFROM.FROM.fragDataSize[msgId]);
              
-             //this enables the next block to be read from the right offset, without waiting for the above write
-             Pipe.markBytesReadBase(fromPronghorn, Pipe.takeValue(fromPronghorn));               
              
        }                    
                

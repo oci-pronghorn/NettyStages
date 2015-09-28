@@ -49,7 +49,7 @@ public class PronghornFullDuplexManager {
      * @param channel
      * @return
      */
-    public PronghornFullDuplex buildNewDuplexObject(final Channel channel) {
+    public ContentToPronghornPipe buildNewDuplexObject(final Channel channel) {
         
         long threadId = Thread.currentThread().getId();        
         int pipeOrdinal = LongHashTable.getItem(threadsToOrdinals, threadId);
@@ -74,7 +74,7 @@ public class PronghornFullDuplexManager {
         }
         
         //we know this is only called by the same thread for this channelId instance.
-        return new PronghornFullDuplex(channelLookup[pipeIdx].add(channel), toPronghorn[pipeIdx], pipeIdx);  
+        return new ContentToPronghornPipe(channelLookup[pipeIdx].add(channel), toPronghorn[pipeIdx], pipeIdx);  
     }
   
     public Pipe getToPronghornPipe(int pipeIdx) {

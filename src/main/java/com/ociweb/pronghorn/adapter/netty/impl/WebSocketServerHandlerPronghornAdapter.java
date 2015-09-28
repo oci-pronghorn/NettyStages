@@ -42,7 +42,7 @@ import io.netty.util.internal.SystemPropertyUtil;
 public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInboundHandler<Object> {
 
     private static final String WEBSOCKET_PATH = "/websocket";
-    static final AttributeKey<PronghornFullDuplex> PRONGHORN_KEY = AttributeKey.newInstance("Pipes");
+    static final AttributeKey<ContentToPronghornPipe> PRONGHORN_KEY = AttributeKey.newInstance("Pipes");
     
     private final PronghornFullDuplexManager pfdm;
     private WebSocketServerHandshaker handshaker;
@@ -81,7 +81,9 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
             return;
         }
             
-        String root = SystemPropertyUtil.get("web.application.dir");
+        //String root = SystemPropertyUtil.get("web.application.dir");
+        String root ="/home/nate/CarmaDemoApp/CarmaDemo";
+        
         String path = HttpStaticFileServerHandler.sanitizeUri(req.uri(), root);
 
         
@@ -131,10 +133,10 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
                     //the runnable will call read as needed based on how much data is on the outgoing pipe
                     future.channel().config().setAutoRead(false);
 
-                    Attribute<PronghornFullDuplex> attrib = future.channel().attr(PRONGHORN_KEY);
+                    Attribute<ContentToPronghornPipe> attrib = future.channel().attr(PRONGHORN_KEY);
                     assert(null == attrib.get()) : "This new connection should not already have anything set";
                     
-                    PronghornFullDuplex newDuplexObject = pfdm.buildNewDuplexObject(future.channel());
+                    ContentToPronghornPipe newDuplexObject = pfdm.buildNewDuplexObject(future.channel());
                     continuationDataPos = Pipe.bytesWorkingHeadPosition(pfdm.getToPronghornPipe(newDuplexObject.pipeId));
                     
                     attrib.set(newDuplexObject);
@@ -163,7 +165,7 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
 
         //pfdm.getToPronghornPipe(pipeIdx)
         
-        Attribute<PronghornFullDuplex> attrib = ctx.channel().attr(PRONGHORN_KEY);
+        Attribute<ContentToPronghornPipe> attrib = ctx.channel().attr(PRONGHORN_KEY);
         Pipe toPronghornPipe = pfdm.getToPronghornPipe(attrib.get().pipeId);
         MemberHolder subscriptionHolder = pfdm.getMemberHolder(attrib.get().pipeId);
   

@@ -50,7 +50,8 @@ public class SubscriptionDistributor implements MemberHolderVisitor, GenericFutu
     public void finished() {
         synchronized(subs) { //for shutdown must sync with operation complete to ensure the Release is not lost.
             if (0==subs.get()) {
-                Pipe.batchedReleasePublish(pipe,bytesWorkingTail,workingTail);    
+                Pipe.batchedReleasePublish(pipe, bytesWorkingTail, workingTail);
+                Pipe.releaseAllBatchedReads(pipe);
             }
             beginShutdownProcess = true;
         }
@@ -62,7 +63,8 @@ public class SubscriptionDistributor implements MemberHolderVisitor, GenericFutu
         synchronized(subs) {
             if (0==subs.decrementAndGet() && beginShutdownProcess) {
                 //now release this point in the ring.
-                Pipe.batchedReleasePublish(pipe,bytesWorkingTail,workingTail);        
+                Pipe.batchedReleasePublish(pipe,bytesWorkingTail, workingTail);  
+                Pipe.releaseAllBatchedReads(pipe);
             }
         }
     }
