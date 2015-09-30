@@ -122,9 +122,7 @@ public class ContentToPronghornPipe {
             if (isSubscriptionAdmin(content)) {
                 processSubscription(content, subscriptionHolder, toPronghorn); 
             } else {
-                //send content
-                System.out.println("send content for single ChannelMessageIdx ");
-                
+                //send content                
                 Pipe.addMsgIdx(toPronghorn, WebSocketFROM.forSingleChannelMessageIdx);
                 Pipe.addLongValue(channelIndex, toPronghorn);
                 Pipe.addByteBuffer(content.nioBuffer(), toPronghorn);

@@ -16,7 +16,12 @@ package com.ociweb.pronghorn.adapter.netty.impl;
  */
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import io.netty.buffer.UnpooledByteBufAllocator;
+import io.netty.buffer.UnpooledHeapByteBuf;
+import io.netty.buffer.WrappedByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -38,14 +43,17 @@ import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
 import io.netty.handler.stream.ChunkedInput;
+import io.netty.handler.stream.ChunkedNioFile;
 import io.netty.handler.stream.ChunkedStream;
 import io.netty.util.CharsetUtil;
 import io.netty.util.internal.SystemPropertyUtil;
 
 import javax.activation.MimetypesFileTypeMap;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -187,7 +195,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
             sendError(ctx, NOT_FOUND);
             return;
         }
-        long fileLength = raf.length();
+        long fileLength = file.length();
 
         beginHTTPResponse(ctx, request, lastModified, path, fileLength);
 
@@ -199,13 +207,14 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
             // Write the end marker.
             lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
         } else {
-            ChunkedInput<ByteBuf> chunkedInput = new ChunkedFile(raf, 0, fileLength, 8192);
+            FileInputStream input = new FileInputStream(file);
             
-            sendFileFuture =
-                    ctx.writeAndFlush(new HttpChunkedInput(chunkedInput),
-                            ctx.newProgressivePromise());
-            // HttpChunkedInput will write the end marker (LastHttpContent) for us.
-            lastContentFuture = sendFileFuture;
+            byte[] data = new byte[(int)fileLength];
+            input.read(data);
+            input.close();
+
+            sendFileFuture = ctx.write(Unpooled.wrappedBuffer(data), ctx.newProgressivePromise());
+            lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
         }
 
         progressAndClose(request, sendFileFuture, lastContentFuture);
@@ -218,6 +227,9 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
         HttpUtil.setContentLength(response, fileLength);
         setContentTypeHeader(response, path);
+        
+        response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
+        
         setDateAndCacheHeaders(response, lastModified);
         if (HttpUtil.isKeepAlive(request)) {
             response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
@@ -259,8 +271,18 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
     public static void sendResource(ChannelHandlerContext ctx, FullHttpRequest request, String name)
             throws ParseException, IOException {
         
+        InputStream resourceAsStream = HttpStaticFileServerHandler.class.getResourceAsStream(name);
+        if (null==resourceAsStream) {
+            throw new FileNotFoundException("Unable to find resource: "+name);
+        } else {
+            System.err.println("found resource: "+name);
+        }     
         
-        long lastModified = STARTUP_TIME;
+        int fileLength = resourceAsStream.available();
+        
+        
+       // String path = file.getPath();
+        long lastModified = STARTUP_TIME-3000;
         String path = name;
         
         // Cache Validation
@@ -279,8 +301,6 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
             }
         }
 
-        ChunkedStream cs = new ChunkedStream(HttpStaticFileServerHandler.class.getResourceAsStream(name));
-        long fileLength = cs.length();
 
         beginHTTPResponse(ctx, request, lastModified, path, fileLength);
 
@@ -288,13 +308,15 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         ChannelFuture sendFileFuture;
         ChannelFuture lastContentFuture;
 
-        sendFileFuture =
-                ctx.writeAndFlush(new HttpChunkedInput(cs),
-                        ctx.newProgressivePromise());
-        // HttpChunkedInput will write the end marker (LastHttpContent) for us.
-        lastContentFuture = sendFileFuture;
+        byte[] data = new byte[(int)fileLength]; //big hack to convert into byteBuf
+        resourceAsStream.read(data);
+        resourceAsStream.close();
+
+        sendFileFuture = ctx.write(Unpooled.wrappedBuffer(data), ctx.newProgressivePromise());
+        lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
 
         progressAndClose(request, sendFileFuture, lastContentFuture);
+
     }
 
     
@@ -464,7 +486,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         // Date header
         Calendar time = new GregorianCalendar();
         response.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
-
+   
         // Add cache headers
         time.add(Calendar.SECOND, HTTP_CACHE_SECONDS);
         response.headers().set(HttpHeaderNames.EXPIRES, dateFormatter.format(time.getTime()));
@@ -483,6 +505,11 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
      */
     private static void setContentTypeHeader(HttpResponse response, String path) {
         MimetypesFileTypeMap mimeTypesMap = new MimetypesFileTypeMap();
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, mimeTypesMap.getContentType(path));
+        String contentType = mimeTypesMap.getContentType(path);
+        //patching mistake
+        if (path.endsWith("css")) {
+            contentType = "text/css";
+        }
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
     }
 }

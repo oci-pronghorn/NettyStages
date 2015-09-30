@@ -81,26 +81,21 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
             return;
         }
             
-        //String root = SystemPropertyUtil.get("web.application.dir");
-        String root ="/home/nate/CarmaDemoApp/CarmaDemo";
-        
+        String root = SystemPropertyUtil.get("web.application.dir");  
         String path = HttpStaticFileServerHandler.sanitizeUri(req.uri(), root);
 
-        
         if (null!=path && !path.endsWith(WEBSOCKET_PATH)) {
-            
-            System.out.println("PATH:"+path);
-            
+            System.err.println("looking for "+path);
             if (null==root) {
+                String resourceBase = "/webApp";
                 //pull from resources
                 try {
-                     HttpStaticFileServerHandler.sendResource(ctx, req, path);
+                     HttpStaticFileServerHandler.sendResource(ctx, req, resourceBase+path);
                 } catch (ParseException e) {
                     throw new RuntimeException(e);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                
             } else {
             
                 File file = new File(path);
@@ -110,11 +105,10 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
                    throw new RuntimeException(e);
                 } catch (IOException e) {
                    throw new RuntimeException(e);
-                }
-                
-                return;
+                }                
             }
-                        
+                  System.err.println("finished response");      
+            return;
         }
          
 
