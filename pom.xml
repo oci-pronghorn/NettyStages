@@ -13,20 +13,6 @@
 			<artifactId>netty-all</artifactId>
 			<version>4.1.0.Beta6</version>
      </dependency>
-     
-     
-     <dependency>
-		<groupId>io.netty</groupId>
-		<artifactId>netty-example</artifactId>
-		<version>4.1.0.Beta6</version>
-			<exclusions>
-	        <exclusion>
-	            <groupId>*</groupId>
-	            <artifactId>*</artifactId>
-	        </exclusion>
-	    </exclusions>
-	    <scope>provided</scope>
- 	 </dependency>
   	 
   	 <dependency>
 	  		<groupId>com.ociweb</groupId>

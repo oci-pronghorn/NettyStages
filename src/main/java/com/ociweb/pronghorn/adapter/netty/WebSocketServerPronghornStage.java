@@ -48,7 +48,7 @@ public class WebSocketServerPronghornStage extends PronghornStage{
         super(graphManager, inputPipes, outputPipes);
         
         //enable shutdown to be called without looking for any pipes first
-        GraphManager.addAnnotation(graphManager, GraphManager.PRODUCER, GraphManager.PRODUCER, this);
+        GraphManager.addNota(graphManager, GraphManager.PRODUCER, GraphManager.PRODUCER, this);
         
         if (null!=SystemPropertyUtil.get("web.application.dir")) {
             System.out.println("The web application must be in:"+SystemPropertyUtil.get("web.application.dir"));

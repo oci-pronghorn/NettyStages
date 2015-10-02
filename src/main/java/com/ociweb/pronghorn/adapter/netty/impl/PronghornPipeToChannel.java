@@ -112,7 +112,8 @@ public class PronghornPipeToChannel implements Runnable {
         ///////////////////////////
         //read from network and write out to Pipe
         ///////////////////////////
-        if (Pipe.contentRemaining(toPronghorn) < maxPipeContentLimit ) { //if we loop here we die
+        if (Pipe.contentRemaining(toPronghorn) < maxPipeContentLimit && (0==(iteration&0xF)) ) { //subscriptions are rare so do not check often
+            //if we loop here we die
             Channel ch = channelHolder.next();
             if (null!=ch) {
                 ch.read(); //this can be a very slow call
@@ -120,7 +121,7 @@ public class PronghornPipeToChannel implements Runnable {
         }        
         
         //put back into loop to do this again        
-        if (0==(++iteration&0xFFF) && Pipe.contentRemaining(fromPronghorn)==0 && Pipe.contentRemaining(toPronghorn)==0) {
+        if (0==(++iteration&0x3) && Pipe.contentRemaining(fromPronghorn)==0 && Pipe.contentRemaining(toPronghorn)==0) {
             //slow down because there is nothing going on.
             eventLoop.schedule(this, 1, TimeUnit.MILLISECONDS);
         } else {

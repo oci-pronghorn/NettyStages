@@ -59,7 +59,7 @@ public class ContentToPronghornPipe {
                     assert(false) : "Just for safety the caller should have checked for space first.";
                 }
                 
-                System.out.println("stop publish "+WebSocketFROM.FROM.fieldNameScript[WebSocketFROM.stopSubPublishIdx]);
+           //     System.out.println("stop publish "+WebSocketFROM.FROM.fieldNameScript[WebSocketFROM.stopSubPublishIdx]);
                 
                 Pipe.addMsgIdx(pipe, WebSocketFROM.stopSubPublishIdx);
                 Pipe.addIntValue(content.getByte(0), pipe);
@@ -77,7 +77,7 @@ public class ContentToPronghornPipe {
                         assert(false) : "Just for safety the caller should have checked for space first.";
                     }
                     
-                    System.out.println("start publish");
+           //         System.out.println("start publish");
                     Pipe.addMsgIdx(pipe, WebSocketFROM.startSubPublishIdx);
                     Pipe.addIntValue(content.getByte(0), pipe);
                     Pipe.publishWrites(pipe);                    

@@ -209,9 +209,14 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         } else {
             FileInputStream input = new FileInputStream(file);
             
-            byte[] data = new byte[(int)fileLength];
-            input.read(data);
-            input.close();
+            byte[] data = new byte[(int)fileLength]; //big hack to convert into byteBuf        
+            int pos = 0;
+            int remaining = (int)fileLength;
+            while (remaining>0) {
+                int len = input.read(data, pos, remaining);
+                remaining-=len;
+                pos+=len;
+            }
 
             sendFileFuture = ctx.write(Unpooled.wrappedBuffer(data), ctx.newProgressivePromise());
             lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
@@ -308,8 +313,15 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         ChannelFuture sendFileFuture;
         ChannelFuture lastContentFuture;
 
-        byte[] data = new byte[(int)fileLength]; //big hack to convert into byteBuf
-        resourceAsStream.read(data);
+        byte[] data = new byte[(int)fileLength]; //big hack to convert into byteBuf        
+        int pos = 0;
+        int remaining = fileLength;
+        while (remaining>0) {
+            int len = resourceAsStream.read(data, pos, remaining);
+            remaining-=len;
+            pos+=len;
+        }
+        
         resourceAsStream.close();
 
         sendFileFuture = ctx.write(Unpooled.wrappedBuffer(data), ctx.newProgressivePromise());

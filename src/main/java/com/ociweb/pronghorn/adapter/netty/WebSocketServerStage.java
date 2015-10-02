@@ -45,7 +45,7 @@ public class WebSocketServerStage extends PronghornStage{
         super(graphManager, NONE, NONE);
         
         //enable shutdown to be called without looking for any pipes first
-        GraphManager.addAnnotation(graphManager, GraphManager.PRODUCER, GraphManager.PRODUCER, this);
+        GraphManager.addNota(graphManager, GraphManager.PRODUCER, GraphManager.PRODUCER, this);
 
         
         System.out.println("The AngularJS app must be in:"+SystemPropertyUtil.get("user.dir"));
