@@ -61,11 +61,11 @@ public class PronghornPipeToChannel implements Runnable {
                                                 
                         SubscriptionDistributor sd = new SubscriptionDistributor(fromPronghorn,
                                 
-                                Pipe.bytesWorkingTailPosition(fromPronghorn),
+                                Pipe.getWorkingBlobRingTailPosition(fromPronghorn),
                                 Pipe.getWorkingTailPosition(fromPronghorn),
                                 
-                                Pipe.wrappedBlobRingA(fromPronghorn, meta, len),
-                                Pipe.wrappedBlobRingB(fromPronghorn, meta, len), channelHolder);
+                                Pipe.wrappedBlobReadingRingA(fromPronghorn, meta, len),
+                                Pipe.wrappedBlobReadingRingB(fromPronghorn,meta,len), channelHolder);
                         
                         subscriptionHolder.visit(subId, sd);
                         
@@ -85,11 +85,11 @@ public class PronghornPipeToChannel implements Runnable {
                                                 
                         SubscriptionDistributor sd = new SubscriptionDistributor(fromPronghorn,
                                 
-                                Pipe.bytesWorkingTailPosition(fromPronghorn), //already moved up to end
+                                Pipe.getWorkingBlobRingTailPosition(fromPronghorn), //already moved up to end
                                 Pipe.getWorkingTailPosition(fromPronghorn),   //already moved up to end
                                 
-                                Pipe.wrappedBlobRingA(fromPronghorn, meta, len),
-                                Pipe.wrappedBlobRingB(fromPronghorn, meta, len), channelHolder);
+                                Pipe.wrappedBlobReadingRingA( fromPronghorn, meta, len),
+                                Pipe.wrappedBlobReadingRingB( fromPronghorn,meta,len), channelHolder);
 
                         sd.visit(channelId);
                         sd.finished();                      

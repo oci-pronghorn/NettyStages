@@ -63,8 +63,8 @@ public class PronghornFullDuplexManager {
           } 
           pipeIdx = pipeOrdinal-1;
           channelLookup[pipeIdx] = new ServiceObjectHolder<Channel>(Channel.class, validator); 
-          int maxSubcriptionGroups = 5;
-          subscriptionLookup[pipeIdx] = new MemberHolder(maxSubcriptionGroups);
+          
+          subscriptionLookup[pipeIdx] = new MemberHolder(64);
           
           EventLoop eventLoop = channel.eventLoop();
           eventLoop.execute(new PronghornPipeToChannel(channelLookup[pipeIdx], fromPronghorn[pipeIdx], toPronghorn[pipeIdx], subscriptionLookup[pipeIdx], eventLoop));
