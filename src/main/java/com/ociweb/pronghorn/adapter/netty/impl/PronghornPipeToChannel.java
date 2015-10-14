@@ -121,12 +121,12 @@ public class PronghornPipeToChannel implements Runnable {
         }        
         
         //put back into loop to do this again        
-        if (0==(++iteration&0x3) && Pipe.contentRemaining(fromPronghorn)==0 && Pipe.contentRemaining(toPronghorn)==0) {
+     //   if (0==(++iteration&0x3) && Pipe.contentRemaining(fromPronghorn)==0 && Pipe.contentRemaining(toPronghorn)==0) {
             //slow down because there is nothing going on.
-            eventLoop.schedule(this, 1, TimeUnit.MILLISECONDS);
-        } else {
-            eventLoop.execute(this);
-        }
+            eventLoop.schedule(this, 10, TimeUnit.MILLISECONDS);
+    //    } else {
+     //       eventLoop.execute(this);
+     //   }
 
     }
 

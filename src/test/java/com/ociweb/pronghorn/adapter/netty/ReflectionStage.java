@@ -22,7 +22,7 @@ public class ReflectionStage extends PronghornStage {
     @Override
     public void run() {
         
-        if (Pipe.contentToLowLevelRead(input, msgSize) && Pipe.roomToLowLevelWrite(output, msgSize)) {
+        if (Pipe.hasContentToRead(input, msgSize) && Pipe.roomToLowLevelWrite(output, msgSize)) {
             
             Pipe.addMsgIdx(output, Pipe.takeMsgIdx(input));
             Pipe.addLongValue(Pipe.takeLong(input), output);
@@ -30,7 +30,7 @@ public class ReflectionStage extends PronghornStage {
             
             int meta       = Pipe.takeRingByteMetaData(input);
             int len        = Pipe.takeRingByteLen(input);
-            int mask       = Pipe.byteMask(input);
+            int mask       = Pipe.blobMask(input);
             byte[] backing = Pipe.byteBackingArray(meta, input);
             int offset     = Pipe.bytePosition(meta, input, len);
             

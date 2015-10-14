@@ -42,7 +42,7 @@ public class ContentToPronghornPipe {
     
     private boolean isSubscriptionAdmin(ByteBuf content) {
         //subscriptions are 2 bytes long, first byte is small and second is 1 or 0
-        return (2==content.readableBytes() && (content.getByte(0)>=0) && (content.getByte(0)<10) && ((content.getByte(1)==0) || (content.getByte(1)==1)) ); 
+        return (2==content.readableBytes() && (content.getByte(0)>=0) && (content.getByte(0)<40) && ((content.getByte(1)==0) || (content.getByte(1)==1)) ); 
     }
 
     private void processSubscription(ByteBuf content, MemberHolder subscriptionHolder, Pipe pipe) {
