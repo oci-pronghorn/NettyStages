@@ -517,10 +517,17 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
      */
     private static void setContentTypeHeader(HttpResponse response, String path) {
         MimetypesFileTypeMap mimeTypesMap = new MimetypesFileTypeMap();
-        String contentType = mimeTypesMap.getContentType(path);
-        //patching mistake
+        ////////////////////////////////////////
+        //NOTE: this does not work and behaves different between Java releases!!!!!
+        ///////////////////////////////////////
+        String contentType = mimeTypesMap.getContentType(path); 
+        //patching mistake from the above broken code.
         if (path.endsWith("css")) {
             contentType = "text/css";
+        } else if (path.endsWith("html")) {
+            contentType = "text/html";
+        } else if (path.endsWith("jpg")) {
+            contentType = "image/jpeg";
         }
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
     }
