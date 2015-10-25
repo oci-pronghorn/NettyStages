@@ -2,6 +2,7 @@ package com.ociweb.pronghorn.adapter.netty.impl;
 
 import java.nio.ByteBuffer;
 
+import com.ociweb.pronghorn.adapter.netty.WebSocketSchema;
 import com.ociweb.pronghorn.pipe.FieldReferenceOffsetManager;
 import com.ociweb.pronghorn.pipe.Pipe;
 import com.ociweb.pronghorn.util.MemberHolder;
@@ -55,16 +56,16 @@ public class ContentToPronghornPipe {
             
             if (nowEmpty && !wasEmpty) {
                 //send stop message    
-                while (!Pipe.hasRoomForWrite(pipe, WebSocketFROM.stopSubPublishIdSize)) {
+                while (!Pipe.hasRoomForWrite(pipe, WebSocketSchema.stopSubPublishIdSize)) {
                     assert(false) : "Just for safety the caller should have checked for space first.";
                 }
                 
            //     System.out.println("stop publish "+WebSocketFROM.FROM.fieldNameScript[WebSocketFROM.stopSubPublishIdx]);
                 
-                Pipe.addMsgIdx(pipe, WebSocketFROM.stopSubPublishIdx);
+                Pipe.addMsgIdx(pipe, WebSocketSchema.stopSubPublishIdx);
                 Pipe.addIntValue(content.getByte(0), pipe);
                 Pipe.publishWrites(pipe);                
-                Pipe.confirmLowLevelWrite(pipe, WebSocketFROM.stopSubPublishIdSize);
+                Pipe.confirmLowLevelWrite(pipe, WebSocketSchema.stopSubPublishIdSize);
             }
             
         } else {
@@ -73,15 +74,15 @@ public class ContentToPronghornPipe {
                 subscriptionHolder.addMember(content.getByte(0), channelIndex);        
                 if (wasEmpty) {
                     //send start message
-                    while (!Pipe.roomToLowLevelWrite(pipe, WebSocketFROM.startSubPublishIdSize)) {
+                    while (!Pipe.roomToLowLevelWrite(pipe, WebSocketSchema.startSubPublishIdSize)) {
                         assert(false) : "Just for safety the caller should have checked for space first.";
                     }
                     
            //         System.out.println("start publish");
-                    Pipe.addMsgIdx(pipe, WebSocketFROM.startSubPublishIdx);
+                    Pipe.addMsgIdx(pipe, WebSocketSchema.startSubPublishIdx);
                     Pipe.addIntValue(content.getByte(0), pipe);
                     Pipe.publishWrites(pipe);                    
-                    Pipe.confirmLowLevelWrite(pipe,  WebSocketFROM.startSubPublishIdSize);
+                    Pipe.confirmLowLevelWrite(pipe,  WebSocketSchema.startSubPublishIdSize);
                 }
             }
         }
@@ -123,7 +124,7 @@ public class ContentToPronghornPipe {
                 processSubscription(content, subscriptionHolder, toPronghorn); 
             } else {
                 //send content                
-                Pipe.addMsgIdx(toPronghorn, WebSocketFROM.forSingleChannelMessageIdx);
+                Pipe.addMsgIdx(toPronghorn, WebSocketSchema.forSingleChannelMessageIdx);
                 Pipe.addLongValue(channelIndex, toPronghorn);
                 Pipe.addByteBuffer(content.nioBuffer(), toPronghorn);
                 Pipe.publishWrites(toPronghorn);

@@ -2,6 +2,7 @@ package com.ociweb.pronghorn.adapter.netty.impl;
 
 import java.util.concurrent.TimeUnit;
 
+import com.ociweb.pronghorn.adapter.netty.WebSocketSchema;
 import com.ociweb.pronghorn.pipe.FieldReferenceOffsetManager;
 import com.ociweb.pronghorn.pipe.Pipe;
 import com.ociweb.pronghorn.util.MemberHolder;
@@ -49,7 +50,7 @@ public class PronghornPipeToChannel implements Runnable {
             final int msgId      = Pipe.takeMsgIdx(fromPronghorn);
             
 
-            if (msgId==WebSocketFROM.forSubscribersMessageIdx) { //send to all the  clients on this pipe who have this subscription
+            if (msgId==WebSocketSchema.forSubscribersMessageIdx) { //send to all the  clients on this pipe who have this subscription
                 
                         int subId      = Pipe.takeValue(fromPronghorn);
                         int meta       = Pipe.takeValue(fromPronghorn);
@@ -73,7 +74,7 @@ public class PronghornPipeToChannel implements Runnable {
                         Pipe.markBytesReadBase(fromPronghorn, bytesUsed); 
                         
                         
-             } else if (msgId==WebSocketFROM.forSingleChannelMessageIdx) { //send to single client
+             } else if (msgId==WebSocketSchema.forSingleChannelMessageIdx) { //send to single client
                         
                         long channelId = Pipe.takeLong(fromPronghorn);
                         int meta       = Pipe.takeValue(fromPronghorn);
@@ -103,7 +104,7 @@ public class PronghornPipeToChannel implements Runnable {
 
               }
      
-             Pipe.confirmLowLevelRead(fromPronghorn, WebSocketFROM.FROM.fragDataSize[msgId]);
+             Pipe.confirmLowLevelRead(fromPronghorn, WebSocketSchema.FROM.fragDataSize[msgId]);
              
              
        }                    

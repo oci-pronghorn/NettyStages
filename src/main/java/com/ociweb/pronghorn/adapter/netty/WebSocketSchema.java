@@ -1,10 +1,10 @@
-package com.ociweb.pronghorn.adapter.netty.impl;
+package com.ociweb.pronghorn.adapter.netty;
 
 import com.ociweb.pronghorn.pipe.FieldReferenceOffsetManager;
-import com.ociweb.pronghorn.pipe.schema.loader.TemplateHandler;
+import com.ociweb.pronghorn.pipe.MessageSchema;
 
-public class WebSocketFROM {
-
+public class WebSocketSchema extends MessageSchema {
+ 
     public final static FieldReferenceOffsetManager FROM = new FieldReferenceOffsetManager(
             new int[]{0xc0400003,0x90800000,0xa0000000,0xc0200003,0xc0400003,0x80800000,0xa0000000,0xc0200003,0xc0400002,0x80800000,0xc0200002,0xc0400002,0x80800000,0xc0200002},
             (short)0,
@@ -25,6 +25,11 @@ public class WebSocketFROM {
     public static final int stopSubPublishIdx;
     public static final int stopSubPublishIdSize;
     
+    public static final WebSocketSchema instance = new WebSocketSchema();
+        
+    protected WebSocketSchema() {
+        super(FROM);
+    }
     
     static {
         
@@ -41,8 +46,7 @@ public class WebSocketFROM {
             
             startSubPublishIdSize = FROM.fragDataSize[startSubPublishIdx];
             stopSubPublishIdSize = FROM.fragDataSize[stopSubPublishIdx];
-            
-                        
+                                    
             
         } catch (Throwable e) {
            throw new RuntimeException(e);
