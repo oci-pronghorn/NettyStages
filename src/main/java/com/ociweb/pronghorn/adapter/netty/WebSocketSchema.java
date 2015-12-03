@@ -31,6 +31,17 @@ public class WebSocketSchema extends MessageSchema {
     
     public static final WebSocketSchema instance = new WebSocketSchema();
         
+    public static final int MSG_WEBSOCKETFRAGMENT_1 = 0x00000000;
+    public static final int MSG_WEBSOCKETFRAGMENT_1_FIELD_CHANNELID_10 = 0x00800001;
+    public static final int MSG_WEBSOCKETFRAGMENT_1_FIELD_PAYLOAD_12 = 0x01C00003;
+    public static final int MSG_WEBSOCKETFRAGMENTFORSUBSCRIBERS_2 = 0x00000004;
+    public static final int MSG_WEBSOCKETFRAGMENTFORSUBSCRIBERS_2_FIELD_SUBSCRIPTIONID_11 = 0x00000001;
+    public static final int MSG_WEBSOCKETFRAGMENTFORSUBSCRIBERS_2_FIELD_PAYLOAD_12 = 0x01C00002;
+    public static final int MSG_STARTPUBLISHSUBSRIPTION_3 = 0x00000008;
+    public static final int MSG_STARTPUBLISHSUBSRIPTION_3_FIELD_SUBSCRIPTIONID_11 = 0x00000001;
+    public static final int MSG_STOPPUBLISHSUBSCRIPTION_4 = 0x0000000B;
+    public static final int MSG_STOPPUBLISHSUBSCRIPTION_4_FIELD_SUBSCRIPTIONID_11 = 0x00000001;
+    
     protected WebSocketSchema() {
         super(FROM);
     }
