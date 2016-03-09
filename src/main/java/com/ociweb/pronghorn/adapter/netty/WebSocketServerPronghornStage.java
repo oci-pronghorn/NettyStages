@@ -125,7 +125,7 @@ public class WebSocketServerPronghornStage extends PronghornStage{
             if (channelFuture.isSuccess()) {
                 channel = channelFuture.channel();
                 System.out.println("Open your web browser and navigate to " +
-                        (SSL? "https" : "http") + "://127.0.0.1:" + PORT + '/');
+                        (SSL? "https" : "http") + "://"+channel.remoteAddress()+":" + PORT + '/');
             } else if (channelFuture.isDone()) {            
                 throw new RuntimeException(channelFuture.cause());
             }
