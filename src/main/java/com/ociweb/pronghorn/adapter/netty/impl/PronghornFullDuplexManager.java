@@ -1,5 +1,7 @@
 package com.ociweb.pronghorn.adapter.netty.impl;
 
+import java.io.IOException;
+
 import com.ociweb.pronghorn.pipe.Pipe;
 import com.ociweb.pronghorn.pipe.util.hash.LongHashTable;
 import com.ociweb.pronghorn.util.MemberHolder;
@@ -22,10 +24,20 @@ public class PronghornFullDuplexManager {
     private int assignedPipeCount = 0;
 
     private final static ServiceObjectValidator<Channel> validator = new ServiceObjectValidator<Channel>() {
-                       @Override
+                      @Override
                       public boolean isValid(Channel serviceObject) {
                            return null!=serviceObject && serviceObject.isOpen();
                        }
+
+                       @Override
+                       public void dispose(Channel t) {
+                           if (t.isOpen()) {
+                               t.close();
+                           }       
+                       }
+                      
+                      
+                      
                 };               
     
     
@@ -62,7 +74,7 @@ public class PronghornFullDuplexManager {
               LongHashTable.setItem(threadsToOrdinals, threadId, pipeOrdinal);              
           } 
           pipeIdx = pipeOrdinal-1;
-          channelLookup[pipeIdx] = new ServiceObjectHolder<Channel>(Channel.class, validator); 
+          channelLookup[pipeIdx] = new ServiceObjectHolder<Channel>(Channel.class, validator, true /*should grow*/); //WARNING: will use more memory
           
           subscriptionLookup[pipeIdx] = new MemberHolder(64);
           
