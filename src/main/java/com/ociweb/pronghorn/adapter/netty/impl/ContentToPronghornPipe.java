@@ -97,7 +97,7 @@ public class ContentToPronghornPipe {
         Pipe.copyByteBuffer(content.nioBuffer(), len, toPronghorn);
         
         //compute length from starting position and new position after copy of all the bytes        
-        int curWorkingHeadPos = Pipe.bytesWorkingHeadPosition(toPronghorn);
+        int curWorkingHeadPos = Pipe.getBlobWorkingHeadPosition( toPronghorn);
         int length = curWorkingHeadPos-continuationDataPos;
         while (length<0) {
             length += (Pipe.BYTES_WRAP_MASK+1); //if it wraps

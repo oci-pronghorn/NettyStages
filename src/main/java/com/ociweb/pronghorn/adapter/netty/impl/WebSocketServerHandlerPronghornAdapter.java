@@ -131,7 +131,7 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
                     assert(null == attrib.get()) : "This new connection should not already have anything set";
                     
                     ContentToPronghornPipe newDuplexObject = pfdm.buildNewDuplexObject(future.channel());
-                    continuationDataPos = Pipe.bytesWorkingHeadPosition(pfdm.getToPronghornPipe(newDuplexObject.pipeId));
+                    continuationDataPos = Pipe.getBlobWorkingHeadPosition( pfdm.getToPronghornPipe(newDuplexObject.pipeId));
                     
                     attrib.set(newDuplexObject);
                           
@@ -169,7 +169,7 @@ public class WebSocketServerHandlerPronghornAdapter extends SimpleChannelInbound
         } else {
             attrib.get().sendToPipe(frame.content(), continuationDataPos, continuationInProgress, toPronghornPipe, subscriptionHolder);
             //finished final fragment so capture this now
-            continuationDataPos = Pipe.bytesWorkingHeadPosition(toPronghornPipe);
+            continuationDataPos = Pipe.getBlobWorkingHeadPosition( toPronghornPipe);
             
             continuationInProgress = false;
         }      
